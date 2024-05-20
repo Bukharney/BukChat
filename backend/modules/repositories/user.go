@@ -130,7 +130,8 @@ func (r *UserRepo) AddFriend(req *entities.FriendReq) (*entities.FriendRes, erro
 	"to_user_id",
 	"status"
 	)
-	VALUES ($1, $2, $3);
+	VALUES ($1, $2, $3)
+	RETURNING "from_user_id", "to_user_id", "status", "created_at";
 	`
 
 	user := new(entities.FriendRes)
@@ -139,6 +140,27 @@ func (r *UserRepo) AddFriend(req *entities.FriendReq) (*entities.FriendRes, erro
 	if err != nil {
 		fmt.Println(err.Error())
 		return nil, errors.New("error, failed to add friend")
+	}
+
+	defer rows.Close()
+
+	return user, nil
+}
+
+func (r *UserRepo) AcceptFriendReq(user_id int, friend_id int) (*entities.FriendRes, error) {
+	query := `
+	UPDATE "friends"
+	SET "status" = 1
+	WHERE "to_user_id" = $1 AND "from_user_id" = $2
+	RETURNING "from_user_id", "to_user_id", "status", "created_at";
+	`
+
+	user := new(entities.FriendRes)
+
+	rows, err := r.Db.Queryx(query, friend_id, user_id)
+	if err != nil {
+		fmt.Println(err.Error())
+		return nil, errors.New("error, failed to accept friend request")
 	}
 
 	defer rows.Close()
@@ -168,22 +190,26 @@ func (r *UserRepo) GetFriendsReq(user_id int) ([]entities.FriendInfoRes, error) 
 	return friends, nil
 }
 
-func (r *UserRepo) GetFriendReq(user_id int, friend_id int) (int, error) {
+func (r *UserRepo) GetFriendReq(user_id int, friend_id int) (*entities.FriendRes, error) {
 	query := `
-	SELECT "status"
+	SELECT 
+	"from_user_id", 
+	"to_user_id", 
+	"status", 
+	"created_at"
 	FROM "friends"
-	WHERE "to_user_id" = $1 AND "from_user_id" = $2;
+	WHERE ("to_user_id" = $1 AND "from_user_id" = $2) OR ("to_user_id" = $2 AND "from_user_id" = $1);
 	`
 
 	var friend = new(entities.FriendRes)
 
-	err := r.Db.Select(&friend, query, user_id)
+	err := r.Db.Get(friend, query, user_id, friend_id)
 	if err != nil {
 		fmt.Println(err.Error())
-		return 0, errors.New("error, failed to get friends")
+		return nil, err
 	}
 
-	return friend.Status, nil
+	return friend, nil
 }
 
 func (r *UserRepo) GetFriends(user_id int) ([]entities.FriendInfoRes, error) {
@@ -191,10 +217,10 @@ func (r *UserRepo) GetFriends(user_id int) ([]entities.FriendInfoRes, error) {
 	SELECT
 	"users"."id",
 	"users"."username"
-	FROM "users"
-	JOIN "friends"
-	ON "users"."id" = "friends"."to_user_id"
-	WHERE "friends"."from_user_id" = $1 AND "friends"."status" = 1;
+  FROM "users"
+  JOIN "friends"
+	ON "users"."id" = "friends"."from_user_id" OR "users"."id" = "friends"."to_user_id"
+  WHERE ("friends"."to_user_id" = $1 OR "friends"."from_user_id" = $1) AND "friends"."status" = 1;
 	`
 
 	var friends []entities.FriendInfoRes
@@ -203,6 +229,19 @@ func (r *UserRepo) GetFriends(user_id int) ([]entities.FriendInfoRes, error) {
 	if err != nil {
 		fmt.Println(err.Error())
 		return nil, errors.New("error, failed to get friends")
+	}
+
+	if len(friends) == 0 {
+		return nil, errors.New("error, friends not found")
+	}
+
+	len := len(friends)
+	for i := 0; i < len; i++ {
+		if friends[i].Id == user_id {
+			friends = append(friends[:i], friends[i+1:]...)
+			len--
+			i--
+		}
 	}
 
 	return friends, nil

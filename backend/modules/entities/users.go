@@ -10,6 +10,8 @@ type UsersUsecase interface {
 	GetUserDetails(user UsersClaims) (*UsersDataRes, error)
 	DeleteAccount(user UsersClaims) (*UsersChangedRes, error)
 	AddFriend(req *FriendReq) (*FriendRes, error)
+	GetFriendsReq(userId int) ([]FriendInfoRes, error)
+	GetFriends(userId int) ([]FriendInfoRes, error)
 }
 
 type UsersRepository interface {
@@ -19,8 +21,9 @@ type UsersRepository interface {
 	DeleteAccount(user_id int) (*UsersChangedRes, error)
 	AddFriend(req *FriendReq) (*FriendRes, error)
 	GetFriendsReq(user_id int) ([]FriendInfoRes, error)
-	GetFriendReq(user_id int, friend_id int) (int, error)
+	GetFriendReq(user_id int, friend_id int) (*FriendRes, error)
 	GetFriends(user_id int) ([]FriendInfoRes, error)
+	AcceptFriendReq(user_id int, friend_id int) (*FriendRes, error)
 }
 
 type UsersCredentials struct {
@@ -76,15 +79,17 @@ type UsersChangedRes struct {
 }
 
 type FriendReq struct {
-	UserId   int `json:"user_id"`
-	FriendId int `json:"friend_id"`
-	Status   int `json:"status"`
+	UserId         int    `json:"user_id"`
+	FriendId       int    `json:"friend_id"`
+	FriendUsername string `json:"username" binding:"required"`
+	Status         int    `json:"status"`
 }
 
 type FriendRes struct {
-	UserId   int `json:"user_id"`
-	FriendId int `json:"friend_id"`
-	Status   int `json:"status"`
+	UserId   int    `json:"user_id" db:"from_user_id"`
+	FriendId int    `json:"friend_id" db:"to_user_id"`
+	Status   int    `json:"status" db:"status"`
+	Created  string `json:"created_at" db:"created_at"`
 }
 
 type FriendInfoRes struct {

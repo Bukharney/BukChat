@@ -99,25 +99,54 @@ func (a *UsersUsecases) DeleteAccount(user entities.UsersClaims) (*entities.User
 }
 
 func (a *UsersUsecases) AddFriend(req *entities.FriendReq) (*entities.FriendRes, error) {
-	status, err := a.UsersRepo.GetFriendReq(req.UserId, req.FriendId)
+	friendId, err := a.GetUserByUsername(req.FriendUsername)
 	if err != nil {
 		return nil, err
 	}
-	if status == 0 {
-		req.Status = 1
-		res, err := a.UsersRepo.AddFriend(req)
-		if err != nil {
-			return nil, err
-		}
 
-		return res, nil
-	} else {
+	req.FriendId = friendId.Id
+	status, err := a.UsersRepo.GetFriendReq(req.UserId, friendId.Id)
+	if err != nil && err.Error() == "sql: no rows in result set" {
 		req.Status = 0
 		res, err := a.UsersRepo.AddFriend(req)
 		if err != nil {
 			return nil, err
 		}
-
 		return res, nil
+	} else {
+		if status.Status == 0 && status.UserId == req.UserId && status.FriendId == friendId.Id {
+			return nil, errors.New("error, friend request already sent")
+		} else if status.Status == 1 && status.UserId == req.UserId && status.FriendId == friendId.Id {
+			return nil, errors.New("error, friend already added")
+		} else if status.Status == 0 && status.UserId == friendId.Id && status.FriendId == req.UserId {
+			res, err := a.UsersRepo.AcceptFriendReq(status.UserId, status.FriendId)
+			if err != nil {
+				return nil, err
+			}
+			return res, nil
+		} else if status.Status == 1 && status.UserId == friendId.Id && status.FriendId == req.UserId {
+			return nil, errors.New("error, friend already added")
+		} else {
+			return nil, errors.New("error, unknown error")
+		}
 	}
+
+}
+
+func (a *UsersUsecases) GetFriendsReq(userId int) ([]entities.FriendInfoRes, error) {
+	res, err := a.UsersRepo.GetFriendsReq(userId)
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
+func (a *UsersUsecases) GetFriends(userId int) ([]entities.FriendInfoRes, error) {
+	res, err := a.UsersRepo.GetFriends(userId)
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
 }
