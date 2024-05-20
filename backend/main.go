@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/bukharney/giga-chat/configs"
@@ -22,5 +21,4 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("Server is running on port 8080")
 }

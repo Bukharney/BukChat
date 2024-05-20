@@ -101,6 +101,24 @@ func GetUserByToken(c *gin.Context) (*entities.UsersClaims, error) {
 	return tk, nil
 }
 
+func GetUserToken(tokenPart string) (*entities.UsersClaims, error) {
+	tk := &entities.UsersClaims{}
+
+	if tokenPart == "" {
+		return nil, errors.New("error, missing auth token")
+	}
+
+	_, err := jwt.ParseWithClaims(tokenPart, tk, func(token *jwt.Token) (interface{}, error) {
+		return []byte(os.Getenv("JWT_SECRET")), nil
+	})
+
+	if err != nil {
+		return nil, errors.New("error, invalid token")
+	}
+
+	return tk, nil
+}
+
 func RefreshToken(c *gin.Context) {
 	tokenHeader := c.Request.Header.Get("Authorization")
 	splitted := strings.Split(tokenHeader, " ")

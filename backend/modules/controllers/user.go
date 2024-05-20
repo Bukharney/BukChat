@@ -126,3 +126,31 @@ func (u *UsersController) DeleteAccount(c *gin.Context) {
 
 	c.JSON(http.StatusOK, res)
 }
+
+func (u *UsersController) AddFriend(c *gin.Context) {
+	user, err := middlewares.GetUserByToken(c)
+	if err != nil {
+		return
+	}
+
+	req := new(entities.FriendReq)
+	err = c.ShouldBind(req)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	req.UserId = user.Id
+
+	res, err := u.UsersUsecase.AddFriend(req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, res)
+}

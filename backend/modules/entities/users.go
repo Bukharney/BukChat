@@ -9,6 +9,7 @@ type UsersUsecase interface {
 	ChangePassword(req *UsersChangePasswordReq) (*UsersChangedRes, error)
 	GetUserDetails(user UsersClaims) (*UsersDataRes, error)
 	DeleteAccount(user UsersClaims) (*UsersChangedRes, error)
+	AddFriend(req *FriendReq) (*FriendRes, error)
 }
 
 type UsersRepository interface {
@@ -16,6 +17,10 @@ type UsersRepository interface {
 	GetUserByUsername(username string) (*UsersPassport, error)
 	ChangePassword(req *UsersChangePasswordReq) (*UsersChangedRes, error)
 	DeleteAccount(user_id int) (*UsersChangedRes, error)
+	AddFriend(req *FriendReq) (*FriendRes, error)
+	GetFriendsReq(user_id int) ([]FriendInfoRes, error)
+	GetFriendReq(user_id int, friend_id int) (int, error)
+	GetFriends(user_id int) ([]FriendInfoRes, error)
 }
 
 type UsersCredentials struct {
@@ -68,4 +73,22 @@ type UsersLoginRes struct {
 
 type UsersChangedRes struct {
 	Success bool `json:"success"`
+}
+
+type FriendReq struct {
+	UserId   int `json:"user_id"`
+	FriendId int `json:"friend_id"`
+	Status   int `json:"status"`
+}
+
+type FriendRes struct {
+	UserId   int `json:"user_id"`
+	FriendId int `json:"friend_id"`
+	Status   int `json:"status"`
+}
+
+type FriendInfoRes struct {
+	Id       int    `json:"id"`
+	Username string `json:"username"`
+	Status   int    `json:"status"`
 }

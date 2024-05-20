@@ -97,3 +97,27 @@ func (a *UsersUsecases) DeleteAccount(user entities.UsersClaims) (*entities.User
 
 	return res, nil
 }
+
+func (a *UsersUsecases) AddFriend(req *entities.FriendReq) (*entities.FriendRes, error) {
+	status, err := a.UsersRepo.GetFriendReq(req.UserId, req.FriendId)
+	if err != nil {
+		return nil, err
+	}
+	if status == 0 {
+		req.Status = 1
+		res, err := a.UsersRepo.AddFriend(req)
+		if err != nil {
+			return nil, err
+		}
+
+		return res, nil
+	} else {
+		req.Status = 0
+		res, err := a.UsersRepo.AddFriend(req)
+		if err != nil {
+			return nil, err
+		}
+
+		return res, nil
+	}
+}

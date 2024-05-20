@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/bukharney/giga-chat/configs"
+	"github.com/bukharney/giga-chat/server/ws"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
@@ -36,6 +37,13 @@ func (s *Server) Run() error {
 	if err != nil {
 		return errors.New("failed to map handlers")
 	}
+
+	hub := ws.NewHub()
+	go hub.Run()
+
+	s.App.GET("/ws/:roomId", func(c *gin.Context) {
+		ws.ServeWS(c, hub)
+	})
 
 	err = s.App.Run()
 	if err != nil {
