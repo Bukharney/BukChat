@@ -128,15 +128,16 @@ func (r *UserRepo) AddFriend(req *entities.FriendReq) (*entities.FriendRes, erro
 	INSERT INTO "friends"(
 	"from_user_id",
 	"to_user_id",
+	"room_id",
 	"status"
 	)
-	VALUES ($1, $2, $3)
-	RETURNING "from_user_id", "to_user_id", "status", "created_at";
+	VALUES ($1, $2, $3, $4)
+	RETURNING "from_user_id", "to_user_id", "room_id", "status", "created_at";
 	`
 
 	user := new(entities.FriendRes)
 
-	rows, err := r.Db.Queryx(query, req.UserId, req.FriendId, req.Status)
+	rows, err := r.Db.Queryx(query, req.UserId, req.FriendId, nil, req.Status)
 	if err != nil {
 		fmt.Println(err.Error())
 		return nil, errors.New("error, failed to add friend")
@@ -147,17 +148,17 @@ func (r *UserRepo) AddFriend(req *entities.FriendReq) (*entities.FriendRes, erro
 	return user, nil
 }
 
-func (r *UserRepo) AcceptFriendReq(user_id int, friend_id int) (*entities.FriendRes, error) {
+func (r *UserRepo) AcceptFriendReq(user_id int, friend_id int, room_id int) (*entities.FriendRes, error) {
 	query := `
 	UPDATE "friends"
-	SET "status" = 1
+	SET "status" = 1, "room_id" = $3
 	WHERE "to_user_id" = $1 AND "from_user_id" = $2
 	RETURNING "from_user_id", "to_user_id", "status", "created_at";
 	`
 
 	user := new(entities.FriendRes)
 
-	rows, err := r.Db.Queryx(query, friend_id, user_id)
+	rows, err := r.Db.Queryx(query, friend_id, user_id, room_id)
 	if err != nil {
 		fmt.Println(err.Error())
 		return nil, errors.New("error, failed to accept friend request")
@@ -216,7 +217,9 @@ func (r *UserRepo) GetFriends(user_id int) ([]entities.FriendInfoRes, error) {
 	query := `
 	SELECT
 	"users"."id",
-	"users"."username"
+	"users"."username",
+	"friends"."status",
+	"friends"."room_id"
   FROM "users"
   JOIN "friends"
 	ON "users"."id" = "friends"."from_user_id" OR "users"."id" = "friends"."to_user_id"

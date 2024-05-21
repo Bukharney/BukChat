@@ -23,7 +23,7 @@ type UsersRepository interface {
 	GetFriendsReq(user_id int) ([]FriendInfoRes, error)
 	GetFriendReq(user_id int, friend_id int) (*FriendRes, error)
 	GetFriends(user_id int) ([]FriendInfoRes, error)
-	AcceptFriendReq(user_id int, friend_id int) (*FriendRes, error)
+	AcceptFriendReq(user_id int, friend_id int, room_id int) (*FriendRes, error)
 }
 
 type UsersCredentials struct {
@@ -96,4 +96,5 @@ type FriendInfoRes struct {
 	Id       int    `json:"id"`
 	Username string `json:"username"`
 	Status   int    `json:"status"`
+	RoomId   int    `json:"room_id" db:"room_id"`
 }

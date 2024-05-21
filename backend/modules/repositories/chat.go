@@ -13,9 +13,26 @@ func NewChatRepo(db *sqlx.DB) entities.ChatRepository {
 	return &ChatRepo{Db: db}
 }
 
-func (c *ChatRepo) CreateChatRoom(req *entities.ChatRoom) error {
-	query := `INSERT INTO chat_rooms (name) VALUES ($1)`
-	_, err := c.Db.Exec(query, req.Name)
+func (c *ChatRepo) CreateChatRoom(req *entities.ChatRoom) (int, error) {
+	query := `INSERT INTO rooms (name) VALUES ($1) RETURNING id`
+	var roomId int
+	err := c.Db.QueryRow(query, req.Name).Scan(&roomId)
+	if err != nil {
+		return 0, err
+	}
+
+	return roomId, nil
+}
+
+func (c *ChatRepo) GetChatRoom(userId int, roomId int) error {
+	query := `SELECT * FROM users_rooms
+	WHERE user_id = $1 AND room_id = $2
+	`
+
+	err := c.Db.QueryRow(query, userId, roomId).Scan(
+		&userId,
+		&roomId,
+	)
 	if err != nil {
 		return err
 	}
@@ -23,23 +40,8 @@ func (c *ChatRepo) CreateChatRoom(req *entities.ChatRoom) error {
 	return nil
 }
 
-func (c *ChatRepo) GetChatRooms(userId int) ([]entities.ChatRoom, error) {
-	var chatRooms []entities.ChatRoom
-	query := `SELECT * FROM chat_rooms 
-	JOIN chat_room_users 
-	ON chat_rooms.id = chat_room_users.chat_room_id 
-	WHERE chat_room_users.user_id = $1`
-
-	err := c.Db.Select(&chatRooms, query, userId)
-	if err != nil {
-		return nil, err
-	}
-
-	return chatRooms, nil
-}
-
 func (c *ChatRepo) JoinChatRoom(req *entities.JoinChatRoomReq) error {
-	query := `INSERT INTO chat_room_users (chat_room_id, user_id) VALUES ($1, $2)`
+	query := `INSERT INTO users_rooms (room_id, user_id) VALUES ($1, $2)`
 	_, err := c.Db.Exec(query, req.RoomId, req.UserId)
 	if err != nil {
 		return err
@@ -49,7 +51,7 @@ func (c *ChatRepo) JoinChatRoom(req *entities.JoinChatRoomReq) error {
 }
 
 func (c *ChatRepo) LeaveChatRoom(req *entities.JoinChatRoomReq) error {
-	query := `DELETE FROM chat_room_users WHERE chat_room_id = $1 AND user_id = $2`
+	query := `DELETE FROM users_rooms WHERE room_id = $1 AND user_id = $2`
 	_, err := c.Db.Exec(query, req.RoomId, req.UserId)
 	if err != nil {
 		return err
@@ -59,7 +61,7 @@ func (c *ChatRepo) LeaveChatRoom(req *entities.JoinChatRoomReq) error {
 }
 
 func (c *ChatRepo) SendMessage(req *entities.ChatMessage) error {
-	query := `INSERT INTO chat_messages (chat_room_id, sender, message) VALUES ($1, $2, $3)`
+	query := `INSERT INTO messages (room_id, user_id, message) VALUES ($1, $2, $3)`
 	_, err := c.Db.Exec(query, req.RoomId, req.Sender, req.Message)
 	if err != nil {
 		return err
@@ -70,7 +72,9 @@ func (c *ChatRepo) SendMessage(req *entities.ChatMessage) error {
 
 func (c *ChatRepo) GetChatMessages(roomId int) ([]entities.ChatMessage, error) {
 	var chatMessages []entities.ChatMessage
-	query := `SELECT * FROM chat_messages WHERE chat_room_id = $1`
+	query := `
+	SELECT * FROM messages 
+	WHERE room_id = $1`
 	err := c.Db.Select(&chatMessages, query, roomId)
 	if err != nil {
 		return nil, err
@@ -82,9 +86,9 @@ func (c *ChatRepo) GetChatMessages(roomId int) ([]entities.ChatMessage, error) {
 func (c *ChatRepo) GetChatRoomUsers(roomId int) ([]entities.ChatUser, error) {
 	var users []entities.ChatUser
 	query := `SELECT * FROM users 
-	JOIN chat_room_users 
-	ON users.id = chat_room_users.user_id 
-	WHERE chat_room_users.chat_room_id = $1`
+	JOIN users_rooms 
+	ON users.id = users_rooms.user_id 
+	WHERE users_rooms.room_id = $1`
 
 	err := c.Db.Select(&users, query, roomId)
 	if err != nil {

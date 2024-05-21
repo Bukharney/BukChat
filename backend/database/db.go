@@ -27,22 +27,23 @@ CREATE TABLE IF NOT EXISTS "rooms" (
 
 CREATE TABLE IF NOT EXISTS "messages" (
 	"id" SERIAL PRIMARY KEY,
-	"room_id" INTEGER NOT NULL,
-	"user_id" INTEGER NOT NULL,
+	"room_id" INTEGER NOT NULL REFERENCES rooms(id),
+	"user_id" INTEGER NOT NULL REFERENCES users(id),
 	"message" TEXT NOT NULL,
 	"created_at" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS "users_rooms" (
-	"user_id" INTEGER NOT NULL,
-	"room_id" INTEGER NOT NULL,
+	"user_id" INTEGER NOT NULL REFERENCES users(id),
+	"room_id" INTEGER NOT NULL REFERENCES rooms(id),
 	PRIMARY KEY ("user_id", "room_id")
 );
 
 CREATE TABLE IF NOT EXISTS "friends" (
-	"from_user_id" INTEGER NOT NULL,
-	"to_user_id" INTEGER NOT NULL,
+	"from_user_id" INTEGER NOT NULL REFERENCES users(id),
+	"to_user_id" INTEGER NOT NULL REFERENCES users(id),
 	"status" INTEGER NOT NULL,
+	"room_id" INTEGER REFERENCES rooms(id),
 	"created_at" TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 	PRIMARY KEY ("from_user_id", "to_user_id")
 );

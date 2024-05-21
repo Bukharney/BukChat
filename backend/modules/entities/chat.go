@@ -1,11 +1,17 @@
 package entities
 
 type ChatRepository interface {
-	CreateChatRoom(req *ChatRoom) error
+	CreateChatRoom(req *ChatRoom) (int, error)
+	GetChatRoom(userId int, roomId int) error
+	JoinChatRoom(req *JoinChatRoomReq) error
+	SendMessage(req *ChatMessage) error
+	GetChatMessages(roomId int) ([]ChatMessage, error)
 }
 
 type ChatUsecase interface {
 	CreateChatRoom(req *ChatRoom) error
+	GetChatMessages(roomId int) ([]ChatMessage, error)
+	GetChatRoom(userId int, roomId int) error
 }
 
 type ChatRoom struct {
@@ -14,10 +20,11 @@ type ChatRoom struct {
 }
 
 type ChatMessage struct {
-	Id      int    `json:"id"`
-	RoomId  int    `json:"RoomId"`
-	Sender  int    `json:"sender"`
-	Message string `json:"message"`
+	Id        int    `json:"id"`
+	RoomId    int    `json:"room_id" db:"room_id"`
+	Sender    int    `json:"user_id" db:"user_id"`
+	Message   string `json:"message" db:"message"`
+	Timestamp string `json:"timestamp" db:"created_at"`
 }
 
 type JoinChatRoomReq struct {

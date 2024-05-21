@@ -74,12 +74,14 @@ func GetUserByToken(c *gin.Context) (*entities.UsersClaims, error) {
 	tokenHeader := c.Request.Header.Get("Authorization")
 
 	if tokenHeader == "" {
+
 		return nil, errors.New("error, missing auth token")
 
 	}
 
 	splitted := strings.Split(tokenHeader, " ")
 	if len(splitted) != 2 {
+
 		return nil, errors.New("error, invalid/malformed auth token")
 	}
 
@@ -88,6 +90,7 @@ func GetUserByToken(c *gin.Context) (*entities.UsersClaims, error) {
 	tk := &entities.UsersClaims{}
 
 	if tokenPart == "" {
+
 		return nil, errors.New("error, missing auth token")
 	}
 
@@ -95,6 +98,7 @@ func GetUserByToken(c *gin.Context) (*entities.UsersClaims, error) {
 		return []byte(os.Getenv("JWT_SECRET")), nil
 	})
 	if err != nil {
+
 		return nil, errors.New("error, invalid token")
 	}
 

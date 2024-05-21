@@ -3,6 +3,7 @@ package ws
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/bukharney/giga-chat/middlewares"
@@ -21,6 +22,7 @@ var upgrader = websocket.Upgrader{
 
 // Client struct for websocket connection and message sending
 type Client struct {
+	Chat entities.ChatRepository
 	User *entities.UsersClaims
 	ID   string
 	Conn *websocket.Conn
@@ -29,13 +31,14 @@ type Client struct {
 }
 
 // NewClient creates a new client
-func NewClient(id string, conn *websocket.Conn, hub *Hub, user *entities.UsersClaims) *Client {
+func NewClient(id string, conn *websocket.Conn, hub *Hub, user *entities.UsersClaims, chat entities.ChatRepository) *Client {
 	return &Client{
 		ID:   id,
 		Conn: conn,
 		send: make(chan Message, 256),
 		hub:  hub,
 		User: user,
+		Chat: chat,
 	}
 }
 
@@ -55,6 +58,12 @@ func (c *Client) Read() {
 			fmt.Println("Error: ", err)
 			break
 		}
+		RoomId, _ := strconv.Atoi(msg.ID)
+		c.Chat.SendMessage(&entities.ChatMessage{
+			RoomId:  RoomId,
+			Sender:  c.User.Id,
+			Message: msg.Content,
+		})
 		c.hub.broadcast <- msg
 	}
 }
@@ -76,7 +85,7 @@ func (c *Client) Close() {
 }
 
 // Function to handle websocket connection and register client to hub and start goroutines
-func ServeWS(c *gin.Context, hub *Hub) {
+func ServeWS(c *gin.Context, hub *Hub, chatRepo entities.ChatRepository) {
 	roomId := c.Param("roomId")
 	if roomId == "" {
 		c.JSON(400, gin.H{"error": "roomId is required"})
@@ -103,7 +112,7 @@ func ServeWS(c *gin.Context, hub *Hub) {
 
 	fmt.Println("Client connected")
 
-	client := NewClient(roomId, ws, hub, user)
+	client := NewClient(roomId, ws, hub, user, chatRepo)
 
 	hub.register <- client
 

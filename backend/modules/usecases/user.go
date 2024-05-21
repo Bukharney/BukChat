@@ -9,10 +9,11 @@ import (
 
 type UsersUsecases struct {
 	UsersRepo entities.UsersRepository
+	ChatRepo  entities.ChatRepository
 }
 
-func NewUsersUsecases(usersRepo entities.UsersRepository) entities.UsersUsecase {
-	return &UsersUsecases{UsersRepo: usersRepo}
+func NewUsersUsecases(usersRepo entities.UsersRepository, chatRepo entities.ChatRepository) entities.UsersUsecase {
+	return &UsersUsecases{UsersRepo: usersRepo, ChatRepo: chatRepo}
 }
 
 func (a *UsersUsecases) Register(req *entities.UsersRegisterReq) (*entities.UsersRegisterRes, error) {
@@ -119,10 +120,34 @@ func (a *UsersUsecases) AddFriend(req *entities.FriendReq) (*entities.FriendRes,
 		} else if status.Status == 1 && status.UserId == req.UserId && status.FriendId == friendId.Id {
 			return nil, errors.New("error, friend already added")
 		} else if status.Status == 0 && status.UserId == friendId.Id && status.FriendId == req.UserId {
-			res, err := a.UsersRepo.AcceptFriendReq(status.UserId, status.FriendId)
+			id, err := a.ChatRepo.CreateChatRoom(&entities.ChatRoom{
+				Name: friendId.Username,
+			})
 			if err != nil {
 				return nil, err
 			}
+
+			res, err := a.UsersRepo.AcceptFriendReq(status.UserId, status.FriendId, id)
+			if err != nil {
+				return nil, err
+			}
+
+			err = a.ChatRepo.JoinChatRoom(&entities.JoinChatRoomReq{
+				UserId: friendId.Id,
+				RoomId: id,
+			})
+			if err != nil {
+				return nil, err
+			}
+
+			err = a.ChatRepo.JoinChatRoom(&entities.JoinChatRoomReq{
+				UserId: req.UserId,
+				RoomId: id,
+			})
+			if err != nil {
+				return nil, err
+			}
+
 			return res, nil
 		} else if status.Status == 1 && status.UserId == friendId.Id && status.FriendId == req.UserId {
 			return nil, errors.New("error, friend already added")

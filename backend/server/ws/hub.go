@@ -70,6 +70,7 @@ func (h *Hub) HandleMessage(message Message) {
 	for client := range clients {
 		select {
 		case client.send <- message:
+
 		default:
 			close(client.send)
 			delete(h.clients[message.ID], client)

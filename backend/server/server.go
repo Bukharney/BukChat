@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/bukharney/giga-chat/configs"
+	_repo "github.com/bukharney/giga-chat/modules/repositories"
 	"github.com/bukharney/giga-chat/server/ws"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -27,9 +28,10 @@ func NewServer(db *sqlx.DB, cfg *configs.Configs) *Server {
 func (s *Server) Run() error {
 	s.App.Use(cors.New(
 		cors.Config{
-			AllowOrigins: []string{"*", "http://localhost:5173"},
-			AllowMethods: []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-			AllowHeaders: []string{"*"},
+			AllowOrigins:     []string{"*"},
+			AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+			AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
+			AllowCredentials: true,
 		},
 	))
 
@@ -41,8 +43,9 @@ func (s *Server) Run() error {
 	hub := ws.NewHub()
 	go hub.Run()
 
+	chatRepo := _repo.NewChatRepo(s.DB)
 	s.App.GET("/ws/:roomId", func(c *gin.Context) {
-		ws.ServeWS(c, hub)
+		ws.ServeWS(c, hub, chatRepo)
 	})
 
 	err = s.App.Run()
