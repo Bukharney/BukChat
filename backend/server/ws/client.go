@@ -51,7 +51,7 @@ func (c *Client) Read() {
 
 	for {
 		var msg Message
-		msg.Sender = c.User.Username
+		msg.Sender = c.User.Id
 		msg.Timestamp = time.Now().Format("2006-01-02 15:04:05")
 		err := c.Conn.ReadJSON(&msg)
 		if err != nil {

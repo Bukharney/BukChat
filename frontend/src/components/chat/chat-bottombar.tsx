@@ -19,7 +19,7 @@ export default function ChatBottombar({ sendMessage }: ChatBottombarProps) {
     if (message.trim()) {
       const newMessage: Message = {
         id: message.length + 1,
-        user_id: 0,
+        user_id: 1,
         message: message.trim(),
       };
       sendMessage(newMessage);

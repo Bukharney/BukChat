@@ -13,7 +13,7 @@ type Hub struct {
 }
 
 type Message struct {
-	Sender    string `json:"sender"`
+	Sender    int    `json:"sender"`
 	Content   string `json:"content"`
 	ID        string `json:"id"`
 	Timestamp string `json:"timestamp"`
@@ -49,7 +49,7 @@ func (h *Hub) RegisterNewClient(client *Client) {
 	}
 	h.clients[client.ID][client] = true
 	h.HandleMessage(Message{
-		Sender:    "Server",
+		Sender:    0,
 		Content:   client.User.Username + " has joined the room",
 		ID:        client.ID,
 		Timestamp: time.Now().Format("2006-01-02 15:04:05"),

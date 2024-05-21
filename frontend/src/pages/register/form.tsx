@@ -3,8 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 export const Form = () => {
+  const nevigate = useNavigate();
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -26,9 +28,12 @@ export const Form = () => {
         await res.json().then((data) => {
           localStorage.setItem("token", data.token);
           console.log(data);
+          nevigate("/");
         });
       } else {
-        setError("Invalid email or password");
+        await res.json().then((data) => {
+          setError(data.error);
+        });
       }
     } catch (error) {
       setError("An error occurred");

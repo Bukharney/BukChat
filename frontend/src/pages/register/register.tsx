@@ -6,7 +6,12 @@ export default function RegisterPage() {
       <div className="sm:shadow-xl px-8 pb-8 pt-12 sm:bg-white rounded-xl space-y-12">
         <h1 className="font-semibold text-2xl">Register</h1>
         <LoginForm />
-        <p className="text-center">Already have an account? </p>
+        <p className="text-center">
+          Already have an account?{" "}
+          <a href="/login" className="text-center text-blue-500">
+            Login
+          </a>{" "}
+        </p>
       </div>
     </div>
   );
