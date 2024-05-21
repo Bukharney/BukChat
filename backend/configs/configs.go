@@ -46,13 +46,9 @@ func NewConfigs() *Configs {
 }
 
 func MustGetenv(key string) string {
-	err := godotenv.Load(".env")
-	if err != nil {
-		log.Fatalf("Error loading .env file")
-	}
 	v := os.Getenv(key)
 	if v == "" {
-		log.Fatalf("missing  aenv var %s", key)
+		log.Fatalf("missing env var %s", key)
 	}
 	return v
 }
