@@ -27,9 +27,9 @@ build_frontend:
   script:
     - docker build --pull -t "$CONTAINER_TEST_IMAGE"_frontend ./frontend
     - docker push "$CONTAINER_TEST_IMAGE"_frontend
-  rules:
-    - changes:
-        - frontend/**/*
+  # rules:
+  #   - changes:
+  #       - frontend/**/*
 
 build_backend:
   stage: build
@@ -39,9 +39,9 @@ build_backend:
   script:
     - docker build --pull -t "$CONTAINER_TEST_IMAGE"_backend ./backend
     - docker push "$CONTAINER_TEST_IMAGE"_backend
-  rules:
-    - changes:
-        - backend/**/*
+  # rules:
+  #   - changes:
+  #       - backend/**/*
 
 deploy:
   stage: deploy
