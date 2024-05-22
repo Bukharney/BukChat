@@ -22,7 +22,6 @@ export const Form = () => {
       if (res.ok) {
         await res.json().then((data) => {
           localStorage.setItem("token", data.token);
-          console.log(data);
         });
         nevigate("/");
       } else {

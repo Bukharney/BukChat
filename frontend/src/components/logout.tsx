@@ -39,7 +39,6 @@ export default function LogoutPage() {
       }
     } catch (error) {
       setError("An error occurred");
-      console.log("An error occurred");
     }
   };
   return (
@@ -92,7 +91,6 @@ export default function LogoutPage() {
                 <Button
                   onClick={(e: { preventDefault: () => void }) => {
                     e.preventDefault();
-                    console.log(username);
                     handleAddFriend(username);
                   }}
                 >
