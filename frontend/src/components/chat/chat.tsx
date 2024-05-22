@@ -21,7 +21,8 @@ export function Chat({ selectedUser, messages }: ChatProps) {
 
   const token = localStorage.getItem("token");
   const id = selectedUser.room_id;
-  const WS_URL = `wss://modx.bukharney.tech/ws/${id}?token=${token}`;
+  const host = process.env.HOST;
+  const WS_URL = `wss://${host}/ws/${id}?token=${token}`;
   console.log(messages);
 
   const { sendJsonMessage, readyState } = useWebSocket(WS_URL, {

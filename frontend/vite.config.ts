@@ -18,11 +18,6 @@ export default defineConfig({
         target: "http://server:8080",
         changeOrigin: true,
       },
-      "/ws": {
-        target: "ws://server:8080",
-        changeOrigin: true,
-        ws: true,
-      },
     },
   },
 });

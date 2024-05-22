@@ -16,6 +16,8 @@ services:
   web:
     image: $CI_REGISTRY_IMAGE:main_frontend
     container_name: web
+    environment:
+      - HOST=$HOST
     expose:
       - 5173
     networks:
