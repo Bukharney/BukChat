@@ -21,7 +21,7 @@ export function Chat({ selectedUser, messages }: ChatProps) {
 
   const token = localStorage.getItem("token");
   const id = selectedUser.room_id;
-  const host = process.env.HOST;
+  const host = "gigachat.bukharney.tech";
   const WS_URL = `wss://${host}/ws/${id}?token=${token}`;
   console.log(messages);
 
