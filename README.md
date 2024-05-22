@@ -1,4 +1,4 @@
-# GigaChat
+# [GigaChat](https://gigachat.bukharney.tech/)
 
 GigaChat is an real-time web application
 
