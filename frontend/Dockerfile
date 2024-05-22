@@ -10,6 +10,10 @@ RUN pnpm install
 
 COPY . /app
 
+ARG HOST
+
+ENV HOST=$HOST
+
 RUN pnpm build 
 
 EXPOSE 5173
