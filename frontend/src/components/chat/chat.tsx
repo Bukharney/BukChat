@@ -21,8 +21,7 @@ export function Chat({ selectedUser, messages }: ChatProps) {
 
   const token = localStorage.getItem("token");
   const id = selectedUser.room_id;
-  const host = "gigachat.bukharney.tech";
-  const WS_URL = `wss://${host}/ws/${id}?token=${token}`;
+  const WS_URL = `wss://gigachat.bukharney.tech/ws/${id}?token=${token}`;
 
   const { sendJsonMessage, readyState } = useWebSocket(WS_URL, {
     onOpen: () => {
