@@ -22,13 +22,13 @@ func NewUsersControllers(r gin.IRoutes, usersUsecase entities.UsersUsecase, auth
 		AuthUsecase:  authUsecase,
 	}
 
-	r.GET("/", controllers.GetUserDetails, middlewares.RateLimiter(), middlewares.JwtAuthentication())
-	r.GET("/friends-request", controllers.GetFriendsReq, middlewares.JwtAuthentication())
-	r.GET("/friends", controllers.GetFriends, middlewares.JwtAuthentication())
+	r.GET("/", middlewares.JwtAuthentication(), controllers.GetUserDetails)
+	r.GET("/friends-request", middlewares.JwtAuthentication(), controllers.GetFriendsReq)
+	r.GET("/friends", middlewares.JwtAuthentication(), controllers.GetFriends)
 	r.POST("/", controllers.Register)
-	r.POST("/add-friend", controllers.AddFriend, middlewares.JwtAuthentication())
-	r.DELETE("/", controllers.DeleteAccount, middlewares.JwtAuthentication())
-	r.PATCH("/", controllers.ChangePassword, middlewares.JwtAuthentication())
+	r.POST("/add-friend", middlewares.JwtAuthentication(), controllers.AddFriend)
+	r.DELETE("/", middlewares.JwtAuthentication(), controllers.DeleteAccount)
+	r.PATCH("/", middlewares.JwtAuthentication(), controllers.ChangePassword)
 
 }
 

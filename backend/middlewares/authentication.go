@@ -87,19 +87,9 @@ func GetUserByToken(c *gin.Context) (*entities.UsersClaims, error) {
 
 	tokenPart := splitted[1]
 
-	tk := &entities.UsersClaims{}
-
-	if tokenPart == "" {
-
-		return nil, errors.New("error, missing auth token")
-	}
-
-	_, err := jwt.ParseWithClaims(tokenPart, tk, func(token *jwt.Token) (interface{}, error) {
-		return []byte(os.Getenv("JWT_SECRET")), nil
-	})
+	tk, err := GetUserToken(tokenPart)
 	if err != nil {
-
-		return nil, errors.New("error, invalid token")
+		return nil, err
 	}
 
 	return tk, nil
