@@ -5,3 +5,11 @@ gigachat.bukharney.tech {
     }
 	reverse_proxy web:5173
 }
+
+modx.bukharney.tech {
+    handle /api/* {
+		uri strip_prefix /api
+        reverse_proxy modxServer:8080
+    }
+	reverse_proxy modxWeb:5173
+}
