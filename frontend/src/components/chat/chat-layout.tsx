@@ -7,7 +7,7 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
-import LogoutPage from "../logout";
+import LogoutPage from "../sidebarFooter";
 
 interface ChatLayoutProps {
   defaultLayout: number[] | undefined;
@@ -74,7 +74,7 @@ export function ChatLayout({
           sizes
         )}`;
       }}
-      className="h-full items-stretch"
+      className="h-full items-stretch w-[600px]"
     >
       <ResizablePanel
         defaultSize={defaultLayout[0]}
@@ -95,7 +95,7 @@ export function ChatLayout({
             />
           ) : (
             <>
-              <div className="flex flex-col items-center justify-center h-4/6">
+              <div className="flex flex-col items-center justify-center h-full">
                 <p className="text-center text-lg font-medium text-zinc-500">
                   You have no friends yet
                 </p>

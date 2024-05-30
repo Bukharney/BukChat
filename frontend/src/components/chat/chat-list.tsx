@@ -24,7 +24,7 @@ export function ChatList({
   }, [messages, selectedUser]);
 
   return (
-    <div className="w-full overflow-y-auto overflow-x-hidden h-full flex flex-col">
+    <div className="overflow-y-auto overflow-x-hidden h-full flex flex-col">
       <div
         ref={messagesContainerRef}
         className="w-full overflow-y-auto overflow-x-hidden h-full flex flex-col"
