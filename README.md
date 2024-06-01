@@ -1,6 +1,6 @@
-# GigaChat
+# [BukChat](https://bukchat.bukharney.tech/)
 
-GigaChat is an real-time web application
+BukChat is an real-time web application
 
 ## Technoology Stack
 
