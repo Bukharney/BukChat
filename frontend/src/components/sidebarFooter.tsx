@@ -42,7 +42,7 @@ export default function SidebarFooter() {
     }
   };
   return (
-    <div className="h-6/12 flex justify-end bg-gray-500">
+    <div className="h-6/12 flex justify-end">
       <div className="flex w-full items-end p-4 gap-2 end-0 justify-between">
         <Button
           onClick={() => {

@@ -12,8 +12,7 @@ export default function Home() {
 
   useEffect(() => {
     const checkToken = (token: string) => {
-      const payload: { role: string; username: string; exp: number } =
-        jwtDecode(token);
+      const payload: { exp: number } = jwtDecode(token);
       if (payload.exp * 1000 < Date.now()) {
         localStorage.removeItem("token");
         nevigate("/login");
