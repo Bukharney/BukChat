@@ -54,6 +54,7 @@ func (a *AuthController) AuthTest(c *gin.Context) {
 		})
 		return
 	}
+
 	c.JSON(http.StatusOK, tk)
 }
 
