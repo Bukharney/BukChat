@@ -48,9 +48,7 @@ func (s *Server) Run() error {
 		ws.ServeWS(c, hub, chatRepo)
 	})
 
-	err = s.App.Run(
-		s.Cfg.App.Host + ":" + s.Cfg.App.Port,
-	)
+	err = s.App.Run()
 	if err != nil {
 		return errors.New("failed to run server")
 	}
