@@ -1,0 +1,55 @@
+services:
+  web:
+    image: public.ecr.aws/z4n6o0v4/bukchat/client:latest
+    container_name: web
+    environment:
+      - HOST=$HOST
+    expose:
+      - 5173
+    networks:
+      - caddy_net
+
+  server:
+    image: public.ecr.aws/z4n6o0v4/bukchat/server:latest
+    container_name: server
+    expose:
+      - 8080
+      - 443
+    environment:
+      - PORT=8080
+      - GIN_MODE=release
+      - POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+      - POSTGRES_USER=$POSTGRES_USER
+      - POSTGRES_DB=$POSTGRES_DB
+      - POSTGRES_HOST=$POSTGRES_HOST
+      - POSTGRES_PORT=$POSTGRES_PORT
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - caddy_net
+
+  postgres:
+    image: postgres:14-alpine
+    container_name: postgres
+    user: postgres
+    ports:
+      - 5556:5432
+    volumes:
+      - ~/apps/postgres:/var/lib/postgresql/data
+      - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
+    environment:
+      - POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+      - POSTGRES_USER=$POSTGRES_USER
+      - POSTGRES_DB=$POSTGRES_DB
+    healthcheck:
+      test: ["CMD", "pg_isready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - caddy_net
+
+networks:
+  caddy_net:
+    external: true
