@@ -1,0 +1,93 @@
+name: Build and Deploy to EC2
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "backend/**"
+      - "frontend/**"
+      - "docker-compose.yml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "backend/**"
+      - "frontend/**"
+      - "docker-compose.yml"
+
+  workflow_dispatch:
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: ecr-login
+        run: |
+          aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/z4n6o0v4
+
+      - name: Build and Push Docker Images
+        run: |
+          ECR_REPO_SERVER=public.ecr.aws/z4n6o0v4/bukchat/server
+          ECR_REPO_CLIENT=public.ecr.aws/z4n6o0v4/bukchat/client
+
+          docker build -t $ECR_REPO_SERVER:latest -f backend/Dockerfile backend
+          docker push $ECR_REPO_SERVER:latest
+
+          docker build -t $ECR_REPO_CLIENT:latest -f frontend/Dockerfile frontend
+          docker push $ECR_REPO_CLIENT:latest
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ secrets.EC2_PRIVATE_KEY }}
+
+      - name: Upload Docker Compose files to EC2
+        run: |
+          HOST=${{ secrets.EC2_HOST }}
+          USER=${{ secrets.EC2_USER }}
+          PORT=22
+          
+          scp -o StrictHostKeyChecking=no -P $PORT docker-compose.yml $USER@$HOST:/home/$USER/bukchat/docker-compose.yml
+
+      - name: Deploy to EC2
+        run: |
+          HOST=${{ secrets.EC2_HOST }}
+          USER=${{ secrets.EC2_USER }}
+          PORT=22
+
+          ssh -o StrictHostKeyChecking=no $USER@$HOST << 'EOF'
+            aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/z4n6o0v4
+            docker pull public.ecr.aws/z4n6o0v4/bukchat/client:latest
+            docker pull public.ecr.aws/z4n6o0v4/bukchat/server:latest
+
+            docker-compose -f /home/$USER/bukchat/docker-compose.yml up -d
+          EOF
