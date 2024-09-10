@@ -40,11 +40,30 @@ export function ChatLayout({
         Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
       body: JSON.stringify({ username: username }),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        console.log(data);
-      });
+    }).then((res) => {
+      if (res.ok) {
+        setFriendRequestList(
+          friendRequestList.filter((request) => request.username !== username)
+        );
+      }
+    });
+  };
+
+  const handleRejectFriend = async (username: string) => {
+    await fetch("/v1/users/reject-friend", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+      body: JSON.stringify({ username: username }),
+    }).then((res) => {
+      if (res.ok) {
+        setFriendRequestList(
+          friendRequestList.filter((request) => request.username !== username)
+        );
+      }
+    });
   };
 
   const handleGetFriendRequests = async () => {
@@ -83,7 +102,7 @@ export function ChatLayout({
     };
 
     handleGetFriend();
-  }, []);
+  }, [friendRequestList]);
 
   useEffect(() => {
     const handleGetMessages = async (id: number, userId: number) => {
@@ -143,7 +162,7 @@ export function ChatLayout({
             <PendingReq
               friendRequestList={friendRequestList}
               handleAcceptFriend={handleAcceptFriend}
-              handleGetFriendRequests={handleGetFriendRequests}
+              handleRejectFriend={handleRejectFriend}
             />
             <Footer />
           </div>
@@ -152,7 +171,7 @@ export function ChatLayout({
             <PendingReq
               friendRequestList={friendRequestList}
               handleAcceptFriend={handleAcceptFriend}
-              handleGetFriendRequests={handleGetFriendRequests}
+              handleRejectFriend={handleRejectFriend}
             />
             <div className="flex flex-col h-full justify-between">
               <div className="flex flex-col items-center justify-center h-full">
@@ -186,11 +205,11 @@ export function ChatLayout({
 function PendingReq({
   friendRequestList,
   handleAcceptFriend,
-  handleGetFriendRequests,
+  handleRejectFriend,
 }: {
   friendRequestList: FriendRequest[];
   handleAcceptFriend: (username: string) => void;
-  handleGetFriendRequests: () => void;
+  handleRejectFriend: (username: string) => void;
 }) {
   return (
     <div className="flex flex-col h-6/12 p-2 overflow-auto">
@@ -222,7 +241,7 @@ function PendingReq({
                     <Button
                       onClick={(e) => {
                         e.preventDefault();
-                        console.log("Accepting friend request");
+                        handleRejectFriend(link.username);
                       }}
                       variant={"outline"}
                       size={"sm"}
@@ -234,8 +253,6 @@ function PendingReq({
                       onClick={(e) => {
                         e.preventDefault();
                         handleAcceptFriend(link.username);
-                        handleGetFriendRequests();
-                        console.log("Accepting friend request");
                       }}
                     >
                       Accept

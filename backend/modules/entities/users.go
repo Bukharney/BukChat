@@ -12,6 +12,7 @@ type UsersUsecase interface {
 	AddFriend(req *FriendReq) (*FriendRes, error)
 	GetFriendsReq(userId int) ([]FriendInfoRes, error)
 	GetFriends(userId int) ([]FriendInfoRes, error)
+	RejectFriend(userId int, FriendUsername string) (*UsersChangedRes, error)
 }
 
 type UsersRepository interface {
@@ -24,6 +25,7 @@ type UsersRepository interface {
 	GetFriendReq(user_id int, friend_id int) (*FriendRes, error)
 	GetFriends(user_id int) ([]FriendInfoRes, error)
 	AcceptFriendReq(user_id int, friend_id int, room_id int) (*FriendRes, error)
+	RejectFriend(user_id int, friend_id int) (*UsersChangedRes, error)
 }
 
 type UsersCredentials struct {

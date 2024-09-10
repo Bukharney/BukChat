@@ -169,6 +169,27 @@ func (r *UserRepo) AcceptFriendReq(user_id int, friend_id int, room_id int) (*en
 	return user, nil
 }
 
+func (r *UserRepo) RejectFriend(user_id int, friend_id int) (*entities.UsersChangedRes, error) {
+	query := `
+	DELETE FROM "friends"
+	WHERE "to_user_id" = $1 AND "from_user_id" = $2 OR "to_user_id" = $2 AND "from_user_id" = $1;
+	`
+
+	user := new(entities.UsersChangedRes)
+
+	rows, err := r.Db.Queryx(query, user_id, friend_id)
+	if err != nil {
+		fmt.Println(err.Error())
+		return nil, errors.New("error, failed to reject friend request")
+	}
+
+	defer rows.Close()
+
+	user.Success = true
+
+	return user, nil
+}
+
 func (r *UserRepo) GetFriendsReq(user_id int) ([]entities.FriendInfoRes, error) {
 	query := `
 	SELECT

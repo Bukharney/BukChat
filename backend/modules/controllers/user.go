@@ -27,9 +27,9 @@ func NewUsersControllers(r gin.IRoutes, usersUsecase entities.UsersUsecase, auth
 	r.GET("/friends", middlewares.JwtAuthentication(), controllers.GetFriends)
 	r.POST("/", controllers.Register)
 	r.POST("/add-friend", middlewares.JwtAuthentication(), controllers.AddFriend)
+	r.POST("/reject-friend", middlewares.JwtAuthentication(), controllers.RejectFriend)
 	r.DELETE("/", middlewares.JwtAuthentication(), controllers.DeleteAccount)
 	r.PATCH("/", middlewares.JwtAuthentication(), controllers.ChangePassword)
-
 }
 
 func (u *UsersController) Register(c *gin.Context) {
@@ -149,6 +149,34 @@ func (u *UsersController) AddFriend(c *gin.Context) {
 	req.UserId = user.Id
 
 	res, err := u.UsersUsecase.AddFriend(req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, res)
+}
+
+func (u *UsersController) RejectFriend(c *gin.Context) {
+	user, err := middlewares.GetUserByToken(c)
+	if err != nil {
+		return
+	}
+
+	req := new(entities.FriendReq)
+	err = c.ShouldBind(req)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	req.UserId = user.Id
+
+	res, err := u.UsersUsecase.RejectFriend(req.UserId, req.FriendUsername)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": err.Error(),

@@ -155,7 +155,19 @@ func (a *UsersUsecases) AddFriend(req *entities.FriendReq) (*entities.FriendRes,
 			return nil, errors.New("error, unknown error")
 		}
 	}
+}
 
+func (a *UsersUsecases) RejectFriend(userId int, FriendUsername string) (*entities.UsersChangedRes, error) {
+	friend, err := a.GetUserByUsername(FriendUsername)
+	if err != nil {
+		return nil, err
+	}
+	res, err := a.UsersRepo.RejectFriend(userId, friend.Id)
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
 }
 
 func (a *UsersUsecases) GetFriendsReq(userId int) ([]entities.FriendInfoRes, error) {
