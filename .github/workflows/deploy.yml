@@ -58,13 +58,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v2
 
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
       - name: Set up SSH
         uses: webfactory/ssh-agent@v0.5.3
         with:
@@ -85,9 +78,7 @@ jobs:
           PORT=22
 
           ssh -o StrictHostKeyChecking=no $USER@$HOST << 'EOF'
-            aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws/z4n6o0v4
             docker pull public.ecr.aws/z4n6o0v4/bukchat/client:latest
             docker pull public.ecr.aws/z4n6o0v4/bukchat/server:latest
-
             docker-compose -f /home/$USER/bukchat/docker-compose.yml up -d
           EOF
