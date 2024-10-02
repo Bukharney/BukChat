@@ -80,5 +80,5 @@ jobs:
           ssh -o StrictHostKeyChecking=no $USER@$HOST << 'EOF'
             docker pull public.ecr.aws/z4n6o0v4/bukchat/client:latest
             docker pull public.ecr.aws/z4n6o0v4/bukchat/server:latest
-            docker-compose -f /home/$USER/bukchat/docker-compose.yml up -d
+            docker compose -f /home/$USER/bukchat/docker-compose.yml up -d
           EOF
