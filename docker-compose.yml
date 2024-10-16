@@ -53,5 +53,5 @@ services:
 networks:
   caddy_net:
     external: true
-volunms:
+volumes:
   postgres_data:
