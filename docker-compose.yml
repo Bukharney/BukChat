@@ -1,17 +1,17 @@
 services:
-  web:
+  client:
     image: public.ecr.aws/z4n6o0v4/bukchat/client:latest
-    container_name: web
+    container_name: bukchat_client
     environment:
       - HOST=$HOST
     expose:
-      - 5173
+      - 4173
     networks:
       - caddy_net
 
   server:
     image: public.ecr.aws/z4n6o0v4/bukchat/server:latest
-    container_name: server
+    container_name: bukchat_server
     expose:
       - 8080
       - 443
