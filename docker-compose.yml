@@ -36,7 +36,7 @@ services:
     ports:
       - 5556:5432
     volumes:
-      - ./postgres_data:/var/lib/postgresql/data
+      - ~/apps/postgres:/var/lib/postgresql/data
       - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
     environment:
       - POSTGRES_PASSWORD=$POSTGRES_PASSWORD
@@ -53,5 +53,3 @@ services:
 networks:
   caddy_net:
     external: true
-volumes:
-  postgres_data:
