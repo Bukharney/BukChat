@@ -26,7 +26,7 @@ export async function apiFetch(input: RequestInfo | URL, init: RequestInit = {})
 
 export function getWsUrl(path: string): string {
   const envWsUrl = import.meta.env.VITE_WS_URL;
-  const baseUrl = envWsUrl ? envWsUrl.replace(/\/$/, "") : "ws://localhost:8080";
+  const baseUrl = envWsUrl ? envWsUrl.replace(/\/$/, "") : "ws://bukchat_server:8080";
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
   return `${baseUrl}${cleanPath}`;
 }
