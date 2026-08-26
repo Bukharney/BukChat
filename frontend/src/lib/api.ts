@@ -26,7 +26,15 @@ export async function apiFetch(input: RequestInfo | URL, init: RequestInit = {})
 
 export function getWsUrl(path: string): string {
   const envWsUrl = import.meta.env.VITE_WS_URL;
-  const baseUrl = envWsUrl ? envWsUrl.replace(/\/$/, "") : "ws://bukchat_server:8080";
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
-  return `${baseUrl}${cleanPath}`;
+
+  if (envWsUrl) {
+    const baseUrl = envWsUrl.replace(/\/$/, "");
+    return `${baseUrl}${cleanPath}`;
+  }
+
+  // Construct dynamically based on browser location (handles HTTPS/wss and Nginx proxying)
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  const host = window.location.host;
+  return `${protocol}//${host}${cleanPath}`;
 }
