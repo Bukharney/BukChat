@@ -33,7 +33,7 @@ export function getWsUrl(path: string): string {
     return `${baseUrl}${cleanPath}`;
   }
 
-  // Construct dynamically based on browser location (handles HTTPS/wss and Nginx proxying)
+  // Fallback: derive dynamically from browser location (handles HTTPS/wss: and Nginx reverse proxying)
   const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
   const host = window.location.host;
   return `${protocol}//${host}${cleanPath}`;
