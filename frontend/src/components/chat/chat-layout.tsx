@@ -7,7 +7,7 @@ import { Chat } from "./chat";
 import { Friend, Message } from "@/data";
 import { MessageSquareDashed, UserPlus } from "lucide-react";
 import useWebSocket from "react-use-websocket";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, getWsUrl } from "@/lib/api";
 import { jwtDecode } from "jwt-decode";
 
 interface ChatLayoutProps {
@@ -54,7 +54,7 @@ export function ChatLayout({ }: ChatLayoutProps) {
     }
   }
 
-  const NOTIFICATION_WS_URL = token ? `ws://localhost:8080/ws/notifications?token=${token}` : null;
+  const NOTIFICATION_WS_URL = token ? getWsUrl(`/ws/notifications?token=${token}`) : null;
 
   // Real-time Notification WebSocket Listener
   useWebSocket(NOTIFICATION_WS_URL, {

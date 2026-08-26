@@ -6,6 +6,8 @@ import { Friend, Message } from "@/data";
 import useWebSocket from "react-use-websocket";
 import { jwtDecode } from "jwt-decode";
 
+import { getWsUrl } from "@/lib/api";
+
 interface ChatProps {
   messages?: Message[];
   selectedUser: Friend;
@@ -29,7 +31,7 @@ export function Chat({ selectedUser, messages, onNewMessage }: ChatProps) {
   }
 
   const id = selectedUser.room_id;
-  const WS_URL = `ws://localhost:8080/ws/${id}?token=${token}`;
+  const WS_URL = getWsUrl(`/ws/${id}?token=${token}`);
 
   const { sendJsonMessage } = useWebSocket(WS_URL, {
     onOpen: () => {
