@@ -1,4 +1,4 @@
-# 1. Builder stage
+# Stage 1: Build the static assets
 FROM --platform=$BUILDPLATFORM node:22-alpine AS builder
 
 WORKDIR /app
@@ -11,19 +11,23 @@ RUN pnpm install
 COPY . .
 RUN pnpm build
 
-# 2. Production stage
-FROM node:22-alpine
+# Stage 2: Serve static files with Nginx (No Node/Rollup needed)
+FROM nginx:alpine
 
-WORKDIR /app
+# Copy the built dist directory
+COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Install pnpm in the production stage as well
-RUN npm install -g pnpm@9
-
-COPY --from=builder /app/package.json ./
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/dist ./dist
+# Configure Nginx to listen on port 4173 and handle SPA routing
+RUN printf 'server {\n\
+    listen 4173;\n\
+    server_name localhost;\n\
+    location / {\n\
+    root /usr/share/nginx/html;\n\
+    index index.html index.htm;\n\
+    try_files $uri $uri/ /index.html;\n\
+    }\n\
+    }\n' > /etc/nginx/conf.d/default.conf
 
 EXPOSE 4173
 
-# Run pnpm directly (binding to 0.0.0.0)
-CMD ["pnpm", "preview", "--host", "0.0.0.0", "--port", "4173"]
+CMD ["nginx", "-g", "daemon off;"]
