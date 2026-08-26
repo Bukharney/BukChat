@@ -1,19 +1,27 @@
-# Use Node.js 22 LTS (Alpine or Slim)
+# 1. Build stage runs natively on the builder's host architecture (x86_64) - NO QEMU
+FROM --platform=$BUILDPLATFORM node:22-alpine AS builder
+
+WORKDIR /app
+
+RUN npm install -g pnpm
+
+COPY package.json pnpm-lock.yaml* ./
+RUN pnpm install
+
+COPY . .
+RUN pnpm build
+
+# 2. Production stage (Target architecture: linux/arm64)
 FROM node:22-alpine
 
 WORKDIR /app
 
-# Enable corepack (built-in pnpm manager) or install pnpm globally
-RUN npm install -g pnpm
+# Copy built files from builder stage
+COPY --from=builder /app/package.json ./
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
 
-# Copy package manifests first for efficient Docker layer caching
-COPY package.json pnpm-lock.yaml* ./
-
-RUN pnpm install
-
-COPY . .
-
-RUN pnpm build
 EXPOSE 4173
 
-CMD ["pnpm", "preview"]
+# Adjust command to your preview/start script
+CMD ["pnpm", "preview", "--host"]
