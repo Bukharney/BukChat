@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from "react";
 import { Friend, Message } from "@/data";
 import { MessageSquare } from "lucide-react";
 import { getAvatarUrl } from "@/lib/avatar";
+import { jwtDecode } from "jwt-decode";
 
 interface MessageFeedProps {
   messages?: Message[];
@@ -11,6 +12,17 @@ interface MessageFeedProps {
 
 export const MessageFeed: React.FC<MessageFeedProps> = ({ messages = [], selectedUser, isPartnerTyping }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const token = localStorage.getItem("token");
+  let currentUserId = 0;
+  if (token) {
+    try {
+      const decoded: any = jwtDecode(token);
+      currentUserId = decoded.user_id || decoded.id || 0;
+    } catch (e) {
+      console.error("Failed to decode token", e);
+    }
+  }
 
   useEffect(() => {
     if (containerRef.current) {
@@ -34,7 +46,7 @@ export const MessageFeed: React.FC<MessageFeedProps> = ({ messages = [], selecte
         </div>
       ) : (
         messages.map((msg, index) => {
-          const isCurrentUser = msg.user_id !== selectedUser.id;
+          const isCurrentUser = currentUserId !== 0 ? msg.user_id === currentUserId : msg.user_id !== selectedUser.id;
 
           return (
             <div

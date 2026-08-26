@@ -1,6 +1,7 @@
 import React, { useState, useRef } from "react";
 import { SendHorizontal, Smile, Paperclip, X } from "lucide-react";
 import { Message } from "@/data";
+import { jwtDecode } from "jwt-decode";
 
 interface MessageComposerProps {
   sendMessage: (newMessage: Message) => void;
@@ -16,6 +17,17 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({ sendMessage, o
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const typingTimeoutRef = useRef<any>(null);
+
+  const token = localStorage.getItem("token");
+  let currentUserId = 0;
+  if (token) {
+    try {
+      const decoded: any = jwtDecode(token);
+      currentUserId = decoded.user_id || decoded.id || 0;
+    } catch (e) {
+      console.error("Failed to decode token", e);
+    }
+  }
 
   const notifyTyping = () => {
     if (!onTyping) return;
@@ -45,7 +57,7 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({ sendMessage, o
 
     const newMessage: Message = {
       id: Date.now(),
-      user_id: 1, // Current user
+      user_id: currentUserId,
       message: content,
       timestamp: new Date().toISOString(),
     };

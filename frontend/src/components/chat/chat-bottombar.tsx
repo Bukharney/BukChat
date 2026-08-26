@@ -2,6 +2,7 @@ import { SendHorizontal } from "lucide-react";
 import React, { useRef, useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Message } from "@/data";
+import { jwtDecode } from "jwt-decode";
 
 interface ChatBottombarProps {
   sendMessage: (newMessage: Message) => void;
@@ -11,6 +12,17 @@ export default function ChatBottombar({ sendMessage }: ChatBottombarProps) {
   const [message, setMessage] = useState("");
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
+  const token = localStorage.getItem("token");
+  let currentUserId = 0;
+  if (token) {
+    try {
+      const decoded: any = jwtDecode(token);
+      currentUserId = decoded.user_id || decoded.id || 0;
+    } catch (e) {
+      console.error("Failed to decode token", e);
+    }
+  }
+
   const handleInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     setMessage(event.target.value);
   };
@@ -19,7 +31,7 @@ export default function ChatBottombar({ sendMessage }: ChatBottombarProps) {
     if (message.trim()) {
       const newMessage: Message = {
         id: message.length + 1,
-        user_id: 1,
+        user_id: currentUserId,
         message: message.trim(),
       };
       sendMessage(newMessage);
