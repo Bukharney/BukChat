@@ -181,10 +181,17 @@ export const FriendsModal: React.FC<FriendsModalProps> = ({
                       />
                       <div>
                         <span className="text-sm font-medium text-slate-800 block">{friend.username}</span>
-                        <span className="text-[11px] text-emerald-500 flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
-                          Online
-                        </span>
+                        {friend.is_online !== false ? (
+                          <span className="text-[11px] text-emerald-500 flex items-center gap-1 font-medium">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+                            Online
+                          </span>
+                        ) : (
+                          <span className="text-[11px] text-slate-400 flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-slate-300 inline-block" />
+                            Offline
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>

@@ -99,4 +99,5 @@ type FriendInfoRes struct {
 	Username string `json:"username"`
 	Status   int    `json:"status"`
 	RoomId   int    `json:"room_id" db:"room_id"`
+	IsOnline bool   `json:"is_online"`
 }

@@ -47,6 +47,13 @@ func (h *Hub) Run() {
 	}
 }
 
+func (h *Hub) IsUserOnline(userID int) bool {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	conns, ok := h.userClients[userID]
+	return ok && len(conns) > 0
+}
+
 func (h *Hub) RegisterNewClient(client *Client) {
 	h.mu.Lock()
 	connections := h.clients[client.ID]
@@ -56,6 +63,7 @@ func (h *Hub) RegisterNewClient(client *Client) {
 	}
 	h.clients[client.ID][client] = true
 
+	var isFirstConn bool
 	if client.User != nil && client.User.Id != 0 {
 		userConns := h.userClients[client.User.Id]
 		if userConns == nil {
@@ -63,6 +71,9 @@ func (h *Hub) RegisterNewClient(client *Client) {
 			h.userClients[client.User.Id] = userConns
 		}
 		h.userClients[client.User.Id][client] = true
+		if len(h.userClients[client.User.Id]) == 1 {
+			isFirstConn = true
+		}
 	}
 	h.mu.Unlock()
 
@@ -73,23 +84,52 @@ func (h *Hub) RegisterNewClient(client *Client) {
 		ID:        client.ID,
 		Timestamp: time.Now().Format("2006-01-02 15:04:05"),
 	})
+
+	if isFirstConn && client.User != nil {
+		h.HandleMessage(Message{
+			Type:   "user_status",
+			Sender: client.User.Id,
+			ID:     "notifications",
+			Payload: map[string]interface{}{
+				"user_id":   client.User.Id,
+				"is_online": true,
+			},
+		})
+	}
 }
 
 func (h *Hub) RemoveClient(client *Client) {
 	h.mu.Lock()
-	defer h.mu.Unlock()
 
 	if _, ok := h.clients[client.ID]; ok {
 		delete(h.clients[client.ID], client)
 	}
 
+	var isLastConn bool
 	if client.User != nil && client.User.Id != 0 {
 		if _, ok := h.userClients[client.User.Id]; ok {
 			delete(h.userClients[client.User.Id], client)
+			if len(h.userClients[client.User.Id]) == 0 {
+				delete(h.userClients, client.User.Id)
+				isLastConn = true
+			}
 		}
 	}
 
+	h.mu.Unlock()
 	close(client.send)
+
+	if isLastConn && client.User != nil {
+		h.HandleMessage(Message{
+			Type:   "user_status",
+			Sender: client.User.Id,
+			ID:     "notifications",
+			Payload: map[string]interface{}{
+				"user_id":   client.User.Id,
+				"is_online": false,
+			},
+		})
+	}
 }
 
 func (h *Hub) HandleMessage(message Message) {

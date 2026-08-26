@@ -142,7 +142,11 @@ export const ChannelSidebar: React.FC<ChannelSidebarProps> = ({
                     alt={friend.username}
                     className="w-10 h-10 rounded-2xl object-cover border border-slate-200/60 shadow-sm"
                   />
-                  <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white" />
+                  <span
+                    className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${
+                      friend.is_online !== false ? "bg-emerald-500" : "bg-slate-300"
+                    }`}
+                  />
                   {hasUnread && (
                     <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-indigo-600 animate-pulse border-2 border-white" />
                   )}
@@ -159,7 +163,9 @@ export const ChannelSidebar: React.FC<ChannelSidebarProps> = ({
                         {unread}
                       </span>
                     ) : (
-                      <span className="text-[10px] text-slate-400">Online</span>
+                      <span className={`text-[10px] ${friend.is_online !== false ? "text-emerald-600 font-medium" : "text-slate-400"}`}>
+                        {friend.is_online !== false ? "Online" : "Offline"}
+                      </span>
                     )}
                   </div>
                   <p className={`text-[11px] truncate ${hasUnread ? "font-bold text-indigo-900" : "text-slate-500"}`}>

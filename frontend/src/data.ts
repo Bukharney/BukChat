@@ -178,6 +178,7 @@ export type Friend = {
   messages: Message[];
   room_id: number;
   unreadCount?: number;
+  is_online?: boolean;
 };
 
 export const loggedInUserData = {

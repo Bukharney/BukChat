@@ -17,7 +17,11 @@ export default function ChatTopbar({ selectedUser, isPartnerTyping }: ChatTopbar
             alt={selectedUser.username}
             className="w-10 h-10 rounded-2xl object-cover border border-slate-200/60 shadow-sm"
           />
-          <span className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white" />
+          <span
+            className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${
+              selectedUser.is_online !== false ? "bg-emerald-500" : "bg-slate-300"
+            }`}
+          />
         </div>
         <div>
           <h3 className="text-sm font-bold text-slate-800 tracking-tight">
@@ -28,10 +32,15 @@ export default function ChatTopbar({ selectedUser, isPartnerTyping }: ChatTopbar
               <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 inline-block animate-ping" />
               typing...
             </span>
-          ) : (
+          ) : selectedUser.is_online !== false ? (
             <span className="text-[11px] text-emerald-600 font-medium flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
               Active Now
+            </span>
+          ) : (
+            <span className="text-[11px] text-slate-400 font-medium flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-slate-300 inline-block" />
+              Offline
             </span>
           )}
         </div>

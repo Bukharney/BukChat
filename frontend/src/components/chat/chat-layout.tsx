@@ -64,6 +64,20 @@ export function ChatLayout({ }: ChatLayoutProps) {
         if (data.type === "friend_request" || data.type === "friend_accepted" || data.type === "friend_rejected") {
           handleGetFriendRequests();
           handleGetFriends();
+        } else if (data.type === "user_status") {
+          const payload = data.payload || {};
+          const statusUserId = Number(payload.user_id || data.sender);
+          const isOnline = Boolean(payload.is_online);
+
+          setFriendList((prevList) =>
+            prevList.map((item) =>
+              item.id === statusUserId ? { ...item, is_online: isOnline } : item
+            )
+          );
+
+          setSelectedUser((prev) =>
+            prev && prev.id === statusUserId ? { ...prev, is_online: isOnline } : prev
+          );
         } else if (data.type === "new_message") {
           const payload = data.payload || {};
           const roomId = Number(payload.room_id || data.id);

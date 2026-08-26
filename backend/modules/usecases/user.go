@@ -208,5 +208,11 @@ func (a *UsersUsecases) GetFriends(userId int) ([]entities.FriendInfoRes, error)
 		return nil, err
 	}
 
+	for i := range res {
+		if a.Hub != nil {
+			res[i].IsOnline = a.Hub.IsUserOnline(res[i].Id)
+		}
+	}
+
 	return res, nil
 }
