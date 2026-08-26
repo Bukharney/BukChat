@@ -1,4 +1,4 @@
-# Stage 1: Build the static assets
+# Stage 1: Build
 FROM --platform=$BUILDPLATFORM node:22-alpine AS builder
 
 WORKDIR /app
@@ -11,22 +11,14 @@ RUN pnpm install
 COPY . .
 RUN pnpm build
 
-# Stage 2: Serve static files with Nginx (No Node/Rollup needed)
+# Stage 2: Production Nginx
 FROM nginx:alpine
 
-# Copy the built dist directory
+# Copy built frontend assets
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Configure Nginx to listen on port 4173 and handle SPA routing
-RUN printf 'server {\n\
-    listen 4173;\n\
-    server_name localhost;\n\
-    location / {\n\
-    root /usr/share/nginx/html;\n\
-    index index.html index.htm;\n\
-    try_files $uri $uri/ /index.html;\n\
-    }\n\
-    }\n' > /etc/nginx/conf.d/default.conf
+# Copy the custom Nginx configuration
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 4173
 
