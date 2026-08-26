@@ -1,7 +1,7 @@
 package server
 
 import (
-	"errors"
+	"fmt"
 
 	"github.com/bukharney/giga-chat/configs"
 	_repo "github.com/bukharney/giga-chat/modules/repositories"
@@ -35,13 +35,13 @@ func (s *Server) Run() error {
 		},
 	))
 
-	err := s.MapHandlers()
-	if err != nil {
-		return errors.New("failed to map handlers")
-	}
-
 	hub := ws.NewHub()
 	go hub.Run()
+
+	err := s.MapHandlers(hub)
+	if err != nil {
+		return fmt.Errorf("failed to map handlers: %w", err)
+	}
 
 	chatRepo := _repo.NewChatRepo(s.DB)
 	s.App.GET("/ws/:roomId", func(c *gin.Context) {
@@ -50,7 +50,7 @@ func (s *Server) Run() error {
 
 	err = s.App.Run()
 	if err != nil {
-		return errors.New("failed to run server")
+		return fmt.Errorf("failed to run server: %w", err)
 	}
 
 	return nil

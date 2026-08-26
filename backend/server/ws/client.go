@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/bukharney/giga-chat/middlewares"
 	"github.com/bukharney/giga-chat/modules/entities"
@@ -51,20 +50,40 @@ func (c *Client) Read() {
 
 	for {
 		var msg Message
-		msg.Sender = c.User.Id
-		msg.Timestamp = time.Now().Format("2006-01-02 15:04:05")
 		err := c.Conn.ReadJSON(&msg)
 		if err != nil {
-			fmt.Println("Error: ", err)
+			fmt.Println("WS Read Error: ", err)
 			break
 		}
+		msg.Sender = c.User.Id
+		if msg.ID == "" {
+			msg.ID = c.ID
+		}
 		RoomId, _ := strconv.Atoi(msg.ID)
+
+		if msg.Type == "typing" {
+			c.hub.broadcast <- msg
+			continue
+		}
+
 		c.Chat.SendMessage(&entities.ChatMessage{
 			RoomId:  RoomId,
 			Sender:  c.User.Id,
 			Message: msg.Content,
 		})
 		c.hub.broadcast <- msg
+
+		c.hub.broadcast <- Message{
+			Type:    "new_message",
+			Sender:  c.User.Id,
+			Content: msg.Content,
+			ID:      "notifications",
+			Payload: map[string]interface{}{
+				"room_id": RoomId,
+				"sender":  c.User.Id,
+				"content": msg.Content,
+			},
+		}
 	}
 }
 
@@ -110,7 +129,7 @@ func ServeWS(c *gin.Context, hub *Hub, chatRepo entities.ChatRepository) {
 		return
 	}
 
-	fmt.Println("Client connected")
+	fmt.Printf("%s connected to room %s\n", user.Username, roomId)
 
 	client := NewClient(roomId, ws, hub, user, chatRepo)
 

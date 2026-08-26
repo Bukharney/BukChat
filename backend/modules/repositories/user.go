@@ -1,11 +1,15 @@
 package repositories
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/bukharney/giga-chat/modules/entities"
+	"github.com/bukharney/giga-chat/pkg/apperrors"
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 )
 
 type UserRepo struct {
@@ -30,24 +34,27 @@ func (r *UserRepo) Register(req *entities.UsersRegisterReq) (*entities.UsersRegi
 
 	rows, err := r.Db.Queryx(query, req.Username, req.Email, req.Password)
 	if err != nil {
-		e := err.Error()
-		if e == "sql: no rows in result set" {
-			return nil, errors.New("error, user not found")
-		} else if e == "pq: duplicate key value violates unique constraint \"users_username_key\"" {
-			return nil, errors.New("error, username already exists")
-		} else if e == "pq: duplicate key value violates unique constraint \"users_email_key\"" {
-			return nil, errors.New("error, email already exists")
-		} else {
-			return nil, errors.New("error, failed to query")
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) {
+			if pqErr.Code == "23505" {
+				if strings.Contains(pqErr.Constraint, "users_username_key") {
+					return nil, apperrors.ErrUsernameExists
+				}
+				if strings.Contains(pqErr.Constraint, "users_email_key") {
+					return nil, apperrors.ErrEmailExists
+				}
+			}
 		}
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, apperrors.ErrUserNotFound
+		}
+		return nil, fmt.Errorf("failed to register user: %w", err)
 	}
-
 	defer rows.Close()
 
 	for rows.Next() {
 		if err := rows.StructScan(user); err != nil {
-			fmt.Println(err.Error())
-			return nil, errors.New("error, failed to scan")
+			return nil, fmt.Errorf("failed to scan user: %w", err)
 		}
 	}
 
@@ -65,20 +72,17 @@ func (r *UserRepo) ChangePassword(req *entities.UsersChangePasswordReq) (*entiti
 
 	rows, err := r.Db.Queryx(query, req.NewPassword, req.Id)
 	if err != nil {
-		e := err.Error()
-		if e == "sql: no rows in result set" {
-			return nil, errors.New("error, user not found")
-		} else {
-			return nil, errors.New("error, failed to query")
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, apperrors.ErrUserNotFound
 		}
-	} else {
-		res.Success = true
+		return nil, fmt.Errorf("failed to change password: %w", err)
 	}
+	defer rows.Close()
 
+	res.Success = true
 	for rows.Next() {
 		if err := rows.StructScan(res); err != nil {
-			fmt.Println(err.Error())
-			return nil, errors.New("error, failed to scan")
+			return nil, fmt.Errorf("failed to scan password change result: %w", err)
 		}
 	}
 	return res, nil
@@ -96,8 +100,10 @@ func (r *UserRepo) GetUserByUsername(username string) (*entities.UsersPassport, 
 	`
 	res := new(entities.UsersPassport)
 	if err := r.Db.Get(res, query, username); err != nil {
-		fmt.Println(err.Error())
-		return nil, errors.New("error, user not found")
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, apperrors.ErrUserNotFound
+		}
+		return nil, fmt.Errorf("failed to get user by username: %w", err)
 	}
 	return res, nil
 }
@@ -112,14 +118,11 @@ func (r *UserRepo) DeleteAccount(user_id int) (*entities.UsersChangedRes, error)
 
 	rows, err := r.Db.Queryx(query, user_id)
 	if err != nil {
-		fmt.Println(err.Error())
-		return nil, errors.New("error, failed to delete user")
+		return nil, fmt.Errorf("failed to delete user: %w", err)
 	}
-
 	defer rows.Close()
 
 	user.Success = true
-
 	return user, nil
 }
 
@@ -139,10 +142,8 @@ func (r *UserRepo) AddFriend(req *entities.FriendReq) (*entities.FriendRes, erro
 
 	rows, err := r.Db.Queryx(query, req.UserId, req.FriendId, nil, req.Status)
 	if err != nil {
-		fmt.Println(err.Error())
-		return nil, errors.New("error, failed to add friend")
+		return nil, fmt.Errorf("failed to add friend: %w", err)
 	}
-
 	defer rows.Close()
 
 	return user, nil
@@ -160,10 +161,8 @@ func (r *UserRepo) AcceptFriendReq(user_id int, friend_id int, room_id int) (*en
 
 	rows, err := r.Db.Queryx(query, friend_id, user_id, room_id)
 	if err != nil {
-		fmt.Println(err.Error())
-		return nil, errors.New("error, failed to accept friend request")
+		return nil, fmt.Errorf("failed to accept friend request: %w", err)
 	}
-
 	defer rows.Close()
 
 	return user, nil
@@ -179,14 +178,11 @@ func (r *UserRepo) RejectFriend(user_id int, friend_id int) (*entities.UsersChan
 
 	rows, err := r.Db.Queryx(query, user_id, friend_id)
 	if err != nil {
-		fmt.Println(err.Error())
-		return nil, errors.New("error, failed to reject friend request")
+		return nil, fmt.Errorf("failed to reject friend request: %w", err)
 	}
-
 	defer rows.Close()
 
 	user.Success = true
-
 	return user, nil
 }
 
@@ -205,8 +201,10 @@ func (r *UserRepo) GetFriendsReq(user_id int) ([]entities.FriendInfoRes, error) 
 
 	err := r.Db.Select(&friends, query, user_id)
 	if err != nil {
-		fmt.Println(err.Error())
-		return nil, errors.New("error, failed to get friends")
+		if errors.Is(err, sql.ErrNoRows) {
+			return []entities.FriendInfoRes{}, nil
+		}
+		return nil, fmt.Errorf("failed to get friend requests: %w", err)
 	}
 
 	return friends, nil
@@ -227,8 +225,10 @@ func (r *UserRepo) GetFriendReq(user_id int, friend_id int) (*entities.FriendRes
 
 	err := r.Db.Get(friend, query, user_id, friend_id)
 	if err != nil {
-		fmt.Println(err.Error())
-		return nil, err
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, sql.ErrNoRows
+		}
+		return nil, fmt.Errorf("failed to get friend request: %w", err)
 	}
 
 	return friend, nil
@@ -251,19 +251,21 @@ func (r *UserRepo) GetFriends(user_id int) ([]entities.FriendInfoRes, error) {
 
 	err := r.Db.Select(&friends, query, user_id)
 	if err != nil {
-		fmt.Println(err.Error())
-		return nil, errors.New("error, failed to get friends")
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, apperrors.ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to get friends: %w", err)
 	}
 
 	if len(friends) == 0 {
-		return nil, errors.New("error, friends not found")
+		return nil, apperrors.ErrNotFound
 	}
 
-	len := len(friends)
-	for i := 0; i < len; i++ {
+	length := len(friends)
+	for i := 0; i < length; i++ {
 		if friends[i].Id == user_id {
 			friends = append(friends[:i], friends[i+1:]...)
-			len--
+			length--
 			i--
 		}
 	}

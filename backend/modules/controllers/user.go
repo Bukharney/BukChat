@@ -7,6 +7,8 @@ import (
 	"github.com/bukharney/giga-chat/configs"
 	"github.com/bukharney/giga-chat/middlewares"
 	"github.com/bukharney/giga-chat/modules/entities"
+	"github.com/bukharney/giga-chat/pkg/apperrors"
+	"github.com/bukharney/giga-chat/utils"
 	"github.com/gin-gonic/gin"
 )
 
@@ -36,9 +38,7 @@ func (u *UsersController) Register(c *gin.Context) {
 	req := new(entities.UsersRegisterReq)
 	err := c.ShouldBind(req)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		utils.RespondWithError(c, apperrors.ErrBadRequest)
 		return
 	}
 
@@ -49,18 +49,14 @@ func (u *UsersController) Register(c *gin.Context) {
 
 	res, err := u.UsersUsecase.Register(req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		utils.RespondWithError(c, err)
 		return
 	}
 
 	token, err := u.AuthUsecase.Login(u.Cfg, user)
 	if err != nil {
-		log.Println(err.Error())
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		log.Println("login after register failed:", err)
+		utils.RespondWithError(c, err)
 		return
 	}
 
@@ -72,25 +68,22 @@ func (u *UsersController) Register(c *gin.Context) {
 func (u *UsersController) ChangePassword(c *gin.Context) {
 	claims, err := middlewares.GetUserByToken(c)
 	if err != nil {
+		utils.RespondWithError(c, err)
 		return
 	}
 
 	req := new(entities.UsersChangePasswordReq)
 	err = c.ShouldBind(req)
-	req.Username = claims.Username
-	req.Id = claims.Id
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		utils.RespondWithError(c, apperrors.ErrBadRequest)
 		return
 	}
+	req.Username = claims.Username
+	req.Id = claims.Id
 
 	res, err := u.UsersUsecase.ChangePassword(req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		utils.RespondWithError(c, err)
 		return
 	}
 
@@ -100,14 +93,13 @@ func (u *UsersController) ChangePassword(c *gin.Context) {
 func (u *UsersController) GetUserDetails(c *gin.Context) {
 	user, err := middlewares.GetUserByToken(c)
 	if err != nil {
+		utils.RespondWithError(c, err)
 		return
 	}
 
 	res, err := u.UsersUsecase.GetUserDetails(*user)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		utils.RespondWithError(c, err)
 		return
 	}
 
@@ -117,14 +109,13 @@ func (u *UsersController) GetUserDetails(c *gin.Context) {
 func (u *UsersController) DeleteAccount(c *gin.Context) {
 	user, err := middlewares.GetUserByToken(c)
 	if err != nil {
+		utils.RespondWithError(c, err)
 		return
 	}
 
 	res, err := u.UsersUsecase.DeleteAccount(*user)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		utils.RespondWithError(c, err)
 		return
 	}
 
@@ -134,15 +125,14 @@ func (u *UsersController) DeleteAccount(c *gin.Context) {
 func (u *UsersController) AddFriend(c *gin.Context) {
 	user, err := middlewares.GetUserByToken(c)
 	if err != nil {
+		utils.RespondWithError(c, err)
 		return
 	}
 
 	req := new(entities.FriendReq)
 	err = c.ShouldBind(req)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		utils.RespondWithError(c, apperrors.ErrBadRequest)
 		return
 	}
 
@@ -150,9 +140,7 @@ func (u *UsersController) AddFriend(c *gin.Context) {
 
 	res, err := u.UsersUsecase.AddFriend(req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		utils.RespondWithError(c, err)
 		return
 	}
 
@@ -162,15 +150,14 @@ func (u *UsersController) AddFriend(c *gin.Context) {
 func (u *UsersController) RejectFriend(c *gin.Context) {
 	user, err := middlewares.GetUserByToken(c)
 	if err != nil {
+		utils.RespondWithError(c, err)
 		return
 	}
 
 	req := new(entities.FriendReq)
 	err = c.ShouldBind(req)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		utils.RespondWithError(c, apperrors.ErrBadRequest)
 		return
 	}
 
@@ -178,9 +165,7 @@ func (u *UsersController) RejectFriend(c *gin.Context) {
 
 	res, err := u.UsersUsecase.RejectFriend(req.UserId, req.FriendUsername)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		utils.RespondWithError(c, err)
 		return
 	}
 
@@ -190,14 +175,13 @@ func (u *UsersController) RejectFriend(c *gin.Context) {
 func (u *UsersController) GetFriendsReq(c *gin.Context) {
 	user, err := middlewares.GetUserByToken(c)
 	if err != nil {
+		utils.RespondWithError(c, err)
 		return
 	}
 
 	res, err := u.UsersUsecase.GetFriendsReq(user.Id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		utils.RespondWithError(c, err)
 		return
 	}
 
@@ -207,14 +191,13 @@ func (u *UsersController) GetFriendsReq(c *gin.Context) {
 func (u *UsersController) GetFriends(c *gin.Context) {
 	user, err := middlewares.GetUserByToken(c)
 	if err != nil {
+		utils.RespondWithError(c, err)
 		return
 	}
 
 	res, err := u.UsersUsecase.GetFriends(user.Id)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		utils.RespondWithError(c, err)
 		return
 	}
 

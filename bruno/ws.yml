@@ -1,0 +1,21 @@
+info:
+  name: ws
+  type: websocket
+  seq: 1
+
+websocket:
+  url: ws://localhost:8080/ws/1?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjozNSwidXNlcm5hbWUiOiJ1c2VyX2EiLCJpc3MiOiJnaWdhY2hhdF9hdXRoIiwic3ViIjoidXNlcnNfYWNjZXNzX3Rva2VuIiwiZXhwIjoxNzg3NzM2NzU2LCJpYXQiOjE3ODc3MzMxNTYsImp0aSI6ImYzZDBmZjRjLWExMzctNGZlYi05MzJlLWRiYjJhNTRkMGE2NiJ9.JDntxDJ2PfttFWF5UcmRsRMXyrH8OojGZXZVdNsKQkU
+  message:
+    - title: message 1
+      selected: false
+      message:
+        type: json
+        data: |-
+          {
+            "type": "msg",
+            "content": "hi 2"
+          }
+
+settings:
+  timeout: 0
+  keepAliveInterval: 0

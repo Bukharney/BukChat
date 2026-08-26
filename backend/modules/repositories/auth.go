@@ -37,8 +37,7 @@ func (a *AuthRepo) SignUsersAccessToken(req *entities.UsersPassport) (string, er
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	ss, err := token.SignedString([]byte(mySigningKey))
 	if err != nil {
-		fmt.Println(err)
-		return "", err
+		return "", fmt.Errorf("failed to sign access token: %w", err)
 	}
 
 	return ss, nil

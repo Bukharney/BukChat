@@ -6,6 +6,8 @@ import (
 	"github.com/bukharney/giga-chat/configs"
 	"github.com/bukharney/giga-chat/middlewares"
 	"github.com/bukharney/giga-chat/modules/entities"
+	"github.com/bukharney/giga-chat/pkg/apperrors"
+	"github.com/bukharney/giga-chat/utils"
 	"github.com/gin-gonic/gin"
 )
 
@@ -29,17 +31,13 @@ func (a *AuthController) Login(c *gin.Context) {
 	req := new(entities.UsersCredentials)
 	err := c.ShouldBind(req)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": err.Error(),
-		})
+		utils.RespondWithError(c, apperrors.ErrBadRequest)
 		return
 	}
 
 	res, err := a.AuthUsecase.Login(a.Cfg, req)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		utils.RespondWithError(c, err)
 		return
 	}
 
@@ -49,9 +47,7 @@ func (a *AuthController) Login(c *gin.Context) {
 func (a *AuthController) AuthTest(c *gin.Context) {
 	tk, err := middlewares.GetUserByToken(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": err.Error(),
-		})
+		utils.RespondWithError(c, err)
 		return
 	}
 

@@ -1,13 +1,14 @@
 package middlewares
 
 import (
-	"errors"
 	"net/http"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/bukharney/giga-chat/modules/entities"
+	"github.com/bukharney/giga-chat/pkg/apperrors"
+	"github.com/bukharney/giga-chat/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v4"
 )
@@ -27,18 +28,14 @@ func JwtAuthentication() gin.HandlerFunc {
 		tokenHeader := c.Request.Header.Get("Authorization")
 
 		if tokenHeader == "" {
-			c.JSON(http.StatusForbidden, gin.H{
-				"error": "Missing auth token",
-			})
+			utils.RespondWithError(c, apperrors.ErrMissingToken)
 			c.Abort()
 			return
 		}
 
 		splitted := strings.Split(tokenHeader, " ")
 		if len(splitted) != 2 {
-			c.JSON(http.StatusForbidden, gin.H{
-				"error": "Invalid/Malformed auth token",
-			})
+			utils.RespondWithError(c, apperrors.ErrInvalidToken)
 			c.Abort()
 			return
 		}
@@ -51,17 +48,13 @@ func JwtAuthentication() gin.HandlerFunc {
 		})
 
 		if err != nil {
-			c.JSON(http.StatusForbidden, gin.H{
-				"error": err.Error(),
-			})
+			utils.RespondWithError(c, apperrors.ErrInvalidToken)
 			c.Abort()
 			return
 		}
 
 		if !token.Valid {
-			c.JSON(http.StatusForbidden, gin.H{
-				"error": "Invalid token",
-			})
+			utils.RespondWithError(c, apperrors.ErrInvalidToken)
 			c.Abort()
 			return
 		}
@@ -74,15 +67,12 @@ func GetUserByToken(c *gin.Context) (*entities.UsersClaims, error) {
 	tokenHeader := c.Request.Header.Get("Authorization")
 
 	if tokenHeader == "" {
-
-		return nil, errors.New("error, missing auth token")
-
+		return nil, apperrors.ErrMissingToken
 	}
 
 	splitted := strings.Split(tokenHeader, " ")
 	if len(splitted) != 2 {
-
-		return nil, errors.New("error, invalid/malformed auth token")
+		return nil, apperrors.ErrInvalidToken
 	}
 
 	tokenPart := splitted[1]
@@ -90,16 +80,14 @@ func GetUserByToken(c *gin.Context) (*entities.UsersClaims, error) {
 	tk := &entities.UsersClaims{}
 
 	if tokenPart == "" {
-
-		return nil, errors.New("error, missing auth token")
+		return nil, apperrors.ErrMissingToken
 	}
 
 	_, err := jwt.ParseWithClaims(tokenPart, tk, func(token *jwt.Token) (interface{}, error) {
 		return []byte(os.Getenv("JWT_SECRET")), nil
 	})
 	if err != nil {
-
-		return nil, errors.New("error, invalid token")
+		return nil, apperrors.ErrInvalidToken
 	}
 
 	return tk, nil
@@ -109,7 +97,7 @@ func GetUserToken(tokenPart string) (*entities.UsersClaims, error) {
 	tk := &entities.UsersClaims{}
 
 	if tokenPart == "" {
-		return nil, errors.New("error, missing auth token")
+		return nil, apperrors.ErrMissingToken
 	}
 
 	_, err := jwt.ParseWithClaims(tokenPart, tk, func(token *jwt.Token) (interface{}, error) {
@@ -117,7 +105,7 @@ func GetUserToken(tokenPart string) (*entities.UsersClaims, error) {
 	})
 
 	if err != nil {
-		return nil, errors.New("error, invalid token")
+		return nil, apperrors.ErrInvalidToken
 	}
 
 	return tk, nil
@@ -126,11 +114,19 @@ func GetUserToken(tokenPart string) (*entities.UsersClaims, error) {
 func RefreshToken(c *gin.Context) {
 	tokenHeader := c.Request.Header.Get("Authorization")
 	splitted := strings.Split(tokenHeader, " ")
+	if len(splitted) != 2 {
+		utils.RespondWithError(c, apperrors.ErrInvalidToken)
+		return
+	}
 	tokenPart := splitted[1]
 	tk := &entities.UsersClaims{}
 	token, err := jwt.ParseWithClaims(tokenPart, tk, func(token *jwt.Token) (interface{}, error) {
 		return []byte(os.Getenv("JWT_SECRET")), nil
 	})
+	if err != nil {
+		utils.RespondWithError(c, apperrors.ErrInvalidToken)
+		return
+	}
 
 	if token.Valid {
 		claims := token.Claims.(*entities.UsersClaims)
@@ -140,17 +136,14 @@ func RefreshToken(c *gin.Context) {
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 		ss, err := token.SignedString([]byte(os.Getenv("JWT_SECRET")))
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": err,
-			})
+			utils.RespondWithError(c, apperrors.ErrInternal)
+			return
 		}
 		c.JSON(http.StatusOK, gin.H{
 			"token": ss,
 		})
 
 	} else {
-		c.JSON(http.StatusForbidden, gin.H{
-			"error": err,
-		})
+		utils.RespondWithError(c, apperrors.ErrInvalidToken)
 	}
 }

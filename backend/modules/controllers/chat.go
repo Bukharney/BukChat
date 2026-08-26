@@ -1,11 +1,14 @@
 package controllers
 
 import (
+	"net/http"
 	"strconv"
 
 	"github.com/bukharney/giga-chat/configs"
 	"github.com/bukharney/giga-chat/middlewares"
 	"github.com/bukharney/giga-chat/modules/entities"
+	"github.com/bukharney/giga-chat/pkg/apperrors"
+	"github.com/bukharney/giga-chat/utils"
 	"github.com/gin-gonic/gin"
 )
 
@@ -31,43 +34,43 @@ func (c *ChatController) CreateChatRoom(ctx *gin.Context) {
 	var req entities.ChatRoom
 	err := ctx.ShouldBindJSON(&req)
 	if err != nil {
-		ctx.JSON(400, gin.H{"message": err.Error()})
+		utils.RespondWithError(ctx, apperrors.ErrBadRequest)
 		return
 	}
 
 	err = c.ChatUsecase.CreateChatRoom(&req)
 	if err != nil {
-		ctx.JSON(500, gin.H{"message": err.Error()})
+		utils.RespondWithError(ctx, err)
 		return
 	}
 
-	ctx.JSON(200, gin.H{"message": "success"})
+	ctx.JSON(http.StatusOK, gin.H{"status": "success", "message": "chat room created successfully"})
 }
 
 func (c *ChatController) GetChatMessages(ctx *gin.Context) {
 	user, err := middlewares.GetUserByToken(ctx)
 	if err != nil {
-		ctx.JSON(401, gin.H{"message": err.Error()})
+		utils.RespondWithError(ctx, err)
 		return
 	}
 	roomId := ctx.Param("roomId")
 	rid, err := strconv.Atoi(roomId)
 	if err != nil {
-		ctx.JSON(400, gin.H{"message": err.Error()})
+		utils.RespondWithError(ctx, apperrors.ErrBadRequest)
 		return
 	}
 
 	err = c.ChatUsecase.GetChatRoom(user.Id, rid)
 	if err != nil {
-		ctx.JSON(500, gin.H{"message": err.Error()})
+		utils.RespondWithError(ctx, err)
 		return
 	}
 
 	messages, err := c.ChatUsecase.GetChatMessages(rid)
 	if err != nil {
-		ctx.JSON(500, gin.H{"message": err.Error()})
+		utils.RespondWithError(ctx, err)
 		return
 	}
 
-	ctx.JSON(200, messages)
+	ctx.JSON(http.StatusOK, messages)
 }

@@ -1,7 +1,12 @@
 package repositories
 
 import (
+	"database/sql"
+	"errors"
+	"fmt"
+
 	"github.com/bukharney/giga-chat/modules/entities"
+	"github.com/bukharney/giga-chat/pkg/apperrors"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -18,7 +23,7 @@ func (c *ChatRepo) CreateChatRoom(req *entities.ChatRoom) (int, error) {
 	var roomId int
 	err := c.Db.QueryRow(query, req.Name).Scan(&roomId)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("failed to create chat room: %w", err)
 	}
 
 	return roomId, nil
@@ -34,7 +39,10 @@ func (c *ChatRepo) GetChatRoom(userId int, roomId int) error {
 		&roomId,
 	)
 	if err != nil {
-		return err
+		if errors.Is(err, sql.ErrNoRows) {
+			return apperrors.ErrNotFound
+		}
+		return fmt.Errorf("failed to get chat room: %w", err)
 	}
 
 	return nil
@@ -44,7 +52,7 @@ func (c *ChatRepo) JoinChatRoom(req *entities.JoinChatRoomReq) error {
 	query := `INSERT INTO users_rooms (room_id, user_id) VALUES ($1, $2)`
 	_, err := c.Db.Exec(query, req.RoomId, req.UserId)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to join chat room: %w", err)
 	}
 
 	return nil
@@ -54,7 +62,7 @@ func (c *ChatRepo) LeaveChatRoom(req *entities.JoinChatRoomReq) error {
 	query := `DELETE FROM users_rooms WHERE room_id = $1 AND user_id = $2`
 	_, err := c.Db.Exec(query, req.RoomId, req.UserId)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to leave chat room: %w", err)
 	}
 
 	return nil
@@ -64,7 +72,7 @@ func (c *ChatRepo) SendMessage(req *entities.ChatMessage) error {
 	query := `INSERT INTO messages (room_id, user_id, message) VALUES ($1, $2, $3)`
 	_, err := c.Db.Exec(query, req.RoomId, req.Sender, req.Message)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to send message: %w", err)
 	}
 
 	return nil
@@ -77,7 +85,10 @@ func (c *ChatRepo) GetChatMessages(roomId int) ([]entities.ChatMessage, error) {
 	WHERE room_id = $1`
 	err := c.Db.Select(&chatMessages, query, roomId)
 	if err != nil {
-		return nil, err
+		if errors.Is(err, sql.ErrNoRows) {
+			return []entities.ChatMessage{}, nil
+		}
+		return nil, fmt.Errorf("failed to get chat messages: %w", err)
 	}
 
 	return chatMessages, nil
@@ -92,7 +103,10 @@ func (c *ChatRepo) GetChatRoomUsers(roomId int) ([]entities.ChatUser, error) {
 
 	err := c.Db.Select(&users, query, roomId)
 	if err != nil {
-		return nil, err
+		if errors.Is(err, sql.ErrNoRows) {
+			return []entities.ChatUser{}, nil
+		}
+		return nil, fmt.Errorf("failed to get chat room users: %w", err)
 	}
 
 	return users, nil

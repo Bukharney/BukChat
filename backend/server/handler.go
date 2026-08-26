@@ -6,11 +6,12 @@ import (
 	_controller "github.com/bukharney/giga-chat/modules/controllers"
 	_repo "github.com/bukharney/giga-chat/modules/repositories"
 	_usecase "github.com/bukharney/giga-chat/modules/usecases"
+	"github.com/bukharney/giga-chat/server/ws"
 
 	"github.com/gin-gonic/gin"
 )
 
-func (s *Server) MapHandlers() error {
+func (s *Server) MapHandlers(hub *ws.Hub) error {
 	v1 := s.App.Group("/v1")
 
 	usersGroup := v1.Group("/users")
@@ -22,7 +23,7 @@ func (s *Server) MapHandlers() error {
 	chatRepo := _repo.NewChatRepo(s.DB)
 
 	authUsecase := _usecase.NewAuthUsecases(authRepo, usersRepo)
-	usersUsecase := _usecase.NewUsersUsecases(usersRepo, chatRepo)
+	usersUsecase := _usecase.NewUsersUsecases(usersRepo, chatRepo, hub)
 	chatUsecase := _usecase.NewChatUsecases(chatRepo)
 
 	_controller.NewUsersControllers(usersGroup, usersUsecase, authUsecase)

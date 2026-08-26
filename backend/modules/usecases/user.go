@@ -1,19 +1,24 @@
 package usecases
 
 import (
+	"database/sql"
 	"errors"
+	"fmt"
 
 	"github.com/bukharney/giga-chat/modules/entities"
+	"github.com/bukharney/giga-chat/pkg/apperrors"
+	"github.com/bukharney/giga-chat/server/ws"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type UsersUsecases struct {
 	UsersRepo entities.UsersRepository
 	ChatRepo  entities.ChatRepository
+	Hub       *ws.Hub
 }
 
-func NewUsersUsecases(usersRepo entities.UsersRepository, chatRepo entities.ChatRepository) entities.UsersUsecase {
-	return &UsersUsecases{UsersRepo: usersRepo, ChatRepo: chatRepo}
+func NewUsersUsecases(usersRepo entities.UsersRepository, chatRepo entities.ChatRepository, hub *ws.Hub) entities.UsersUsecase {
+	return &UsersUsecases{UsersRepo: usersRepo, ChatRepo: chatRepo, Hub: hub}
 }
 
 func (a *UsersUsecases) Register(req *entities.UsersRegisterReq) (*entities.UsersRegisterRes, error) {
@@ -35,11 +40,11 @@ func (a *UsersUsecases) Register(req *entities.UsersRegisterReq) (*entities.User
 func (a *UsersUsecases) ChangePassword(req *entities.UsersChangePasswordReq) (*entities.UsersChangedRes, error) {
 	user, err := a.UsersRepo.GetUserByUsername(req.Username)
 	if err != nil {
-		return nil, errors.New("error, user not found")
+		return nil, apperrors.ErrUserNotFound
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.OldPassword)); err != nil {
-		return nil, errors.New("error, password is invalid")
+		return nil, apperrors.ErrInvalidPassword
 	}
 
 	req.NewPassword, err = hashPassword(req.NewPassword)
@@ -58,7 +63,7 @@ func (a *UsersUsecases) ChangePassword(req *entities.UsersChangePasswordReq) (*e
 func hashPassword(password string) (string, error) {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to hash password: %w", err)
 	}
 
 	return string(hashedPassword), nil
@@ -88,7 +93,7 @@ func (a *UsersUsecases) GetUserDetails(user entities.UsersClaims) (*entities.Use
 
 func (a *UsersUsecases) DeleteAccount(user entities.UsersClaims) (*entities.UsersChangedRes, error) {
 	if user.Id == 0 {
-		return nil, errors.New("error, user not found")
+		return nil, apperrors.ErrUserNotFound
 	}
 
 	res, err := a.UsersRepo.DeleteAccount(user.Id)
@@ -107,53 +112,67 @@ func (a *UsersUsecases) AddFriend(req *entities.FriendReq) (*entities.FriendRes,
 
 	req.FriendId = friendId.Id
 	status, err := a.UsersRepo.GetFriendReq(req.UserId, friendId.Id)
-	if err != nil && err.Error() == "sql: no rows in result set" {
-		req.Status = 0
-		res, err := a.UsersRepo.AddFriend(req)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			req.Status = 0
+			res, err := a.UsersRepo.AddFriend(req)
+			if err != nil {
+				return nil, err
+			}
+			if a.Hub != nil {
+				a.Hub.SendToUser(friendId.Id, "friend_request", map[string]interface{}{
+					"from_user_id": req.UserId,
+					"from_username": req.FriendUsername,
+				})
+			}
+			return res, nil
+		}
+		return nil, err
+	}
+
+	if status.Status == 0 && status.UserId == req.UserId && status.FriendId == friendId.Id {
+		return nil, apperrors.ErrFriendReqAlreadySent
+	} else if status.Status == 1 && status.UserId == req.UserId && status.FriendId == friendId.Id {
+		return nil, apperrors.ErrFriendAlreadyAdded
+	} else if status.Status == 0 && status.UserId == friendId.Id && status.FriendId == req.UserId {
+		id, err := a.ChatRepo.CreateChatRoom(&entities.ChatRoom{
+			Name: friendId.Username,
+		})
 		if err != nil {
 			return nil, err
 		}
-		return res, nil
-	} else {
-		if status.Status == 0 && status.UserId == req.UserId && status.FriendId == friendId.Id {
-			return nil, errors.New("error, friend request already sent")
-		} else if status.Status == 1 && status.UserId == req.UserId && status.FriendId == friendId.Id {
-			return nil, errors.New("error, friend already added")
-		} else if status.Status == 0 && status.UserId == friendId.Id && status.FriendId == req.UserId {
-			id, err := a.ChatRepo.CreateChatRoom(&entities.ChatRoom{
-				Name: friendId.Username,
-			})
-			if err != nil {
-				return nil, err
-			}
 
-			res, err := a.UsersRepo.AcceptFriendReq(status.UserId, status.FriendId, id)
-			if err != nil {
-				return nil, err
-			}
-
-			err = a.ChatRepo.JoinChatRoom(&entities.JoinChatRoomReq{
-				UserId: friendId.Id,
-				RoomId: id,
-			})
-			if err != nil {
-				return nil, err
-			}
-
-			err = a.ChatRepo.JoinChatRoom(&entities.JoinChatRoomReq{
-				UserId: req.UserId,
-				RoomId: id,
-			})
-			if err != nil {
-				return nil, err
-			}
-
-			return res, nil
-		} else if status.Status == 1 && status.UserId == friendId.Id && status.FriendId == req.UserId {
-			return nil, errors.New("error, friend already added")
-		} else {
-			return nil, errors.New("error, unknown error")
+		res, err := a.UsersRepo.AcceptFriendReq(status.UserId, status.FriendId, id)
+		if err != nil {
+			return nil, err
 		}
+
+		err = a.ChatRepo.JoinChatRoom(&entities.JoinChatRoomReq{
+			UserId: friendId.Id,
+			RoomId: id,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		err = a.ChatRepo.JoinChatRoom(&entities.JoinChatRoomReq{
+			UserId: req.UserId,
+			RoomId: id,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		if a.Hub != nil {
+			a.Hub.SendToUser(status.UserId, "friend_accepted", res)
+			a.Hub.SendToUser(status.FriendId, "friend_accepted", res)
+		}
+
+		return res, nil
+	} else if status.Status == 1 && status.UserId == friendId.Id && status.FriendId == req.UserId {
+		return nil, apperrors.ErrFriendAlreadyAdded
+	} else {
+		return nil, apperrors.ErrInternal
 	}
 }
 
@@ -165,6 +184,10 @@ func (a *UsersUsecases) RejectFriend(userId int, FriendUsername string) (*entiti
 	res, err := a.UsersRepo.RejectFriend(userId, friend.Id)
 	if err != nil {
 		return nil, err
+	}
+
+	if a.Hub != nil {
+		a.Hub.SendToUser(friend.Id, "friend_rejected", res)
 	}
 
 	return res, nil

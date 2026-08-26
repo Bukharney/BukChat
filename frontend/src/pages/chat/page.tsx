@@ -4,29 +4,32 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 export default function Home() {
-  const nevigate = useNavigate();
+  const navigate = useNavigate();
   const token = localStorage.getItem("token");
-  if (!token) {
-    window.location.href = "/login";
-  }
 
   useEffect(() => {
-    const checkToken = (token: string) => {
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
+    try {
       const payload: { exp: number } = jwtDecode(token);
       if (payload.exp * 1000 < Date.now()) {
         localStorage.removeItem("token");
-        nevigate("/login");
+        navigate("/login");
       }
-    };
+    } catch {
+      localStorage.removeItem("token");
+      navigate("/login");
+    }
+  }, [navigate, token]);
 
-    if (token) checkToken(token);
-  }, [nevigate, token]);
+  if (!token) return null;
 
   return (
-    <div className="flex h-[calc(100dvh)] flex-col items-center justify-center p-4 md:px-24 py-32 gap-4 ">
-      <div className="z-10 border rounded-lg max-w-5xl w-full h-full text-sm">
-        <ChatLayout defaultLayout={[]} navCollapsedSize={1} />
-      </div>
+    <div className="w-screen h-screen overflow-hidden">
+      <ChatLayout />
     </div>
   );
 }

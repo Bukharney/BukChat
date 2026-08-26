@@ -6,6 +6,7 @@ import (
 
 	"github.com/bukharney/giga-chat/configs"
 	"github.com/bukharney/giga-chat/modules/entities"
+	"github.com/bukharney/giga-chat/pkg/apperrors"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -21,17 +22,19 @@ func NewAuthUsecases(authRepo entities.AuthRepository, userRepo entities.UsersRe
 func (a *AuthUsecases) Login(cfg *configs.Configs, req *entities.UsersCredentials) (*entities.UsersLoginRes, error) {
 	user, err := a.UserRepo.GetUserByUsername(req.Username)
 	if err != nil {
-		return nil, errors.New("error, user not found")
+		if errors.Is(err, apperrors.ErrUserNotFound) {
+			return nil, apperrors.ErrInvalidCredentials
+		}
+		return nil, err
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
-		fmt.Println(err.Error())
-		return nil, errors.New("error, password is invalid")
+		return nil, apperrors.ErrInvalidCredentials
 	}
 
 	token, err := a.AuthRepo.SignUsersAccessToken(user)
 	if err != nil {
-		return nil, errors.New("error, failed to sign access token")
+		return nil, fmt.Errorf("failed to sign access token: %w", err)
 	}
 	res := &entities.UsersLoginRes{
 		AccessToken: token,

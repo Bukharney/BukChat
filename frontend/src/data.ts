@@ -177,6 +177,7 @@ export type Friend = {
   username: string;
   messages: Message[];
   room_id: number;
+  unreadCount?: number;
 };
 
 export const loggedInUserData = {
@@ -190,4 +191,5 @@ export interface Message {
   id: number;
   user_id: number;
   message: string;
+  timestamp?: string;
 }

@@ -1,7 +1,7 @@
 package database
 
 import (
-	"errors"
+	"fmt"
 	"log"
 
 	"github.com/bukharney/giga-chat/configs"
@@ -60,11 +60,14 @@ func NewPostgreSQL(cfg *configs.Configs) (*sqlx.DB, error) {
 	log.Println(connectionUrl)
 	db, err := sqlx.Connect("postgres", connectionUrl)
 	if err != nil {
-		return nil, errors.New(err.Error())
+		return nil, fmt.Errorf("failed to connect to postgresql: %w", err)
 	}
 
-	db.MustExec(schema)
+	if _, err := db.Exec(schema); err != nil {
+		return nil, fmt.Errorf("failed to execute database schema: %w", err)
+	}
 
 	log.Println("Connected to PostgreSQL")
 	return db, nil
 }
+
