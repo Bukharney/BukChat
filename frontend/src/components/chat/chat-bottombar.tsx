@@ -16,7 +16,7 @@ export default function ChatBottombar({ sendMessage }: ChatBottombarProps) {
   let currentUserId = 0;
   if (token) {
     try {
-      const decoded: any = jwtDecode(token);
+      const decoded = jwtDecode<{ user_id?: number; id?: number }>(token);
       currentUserId = decoded.user_id || decoded.id || 0;
     } catch (e) {
       console.error("Failed to decode token", e);

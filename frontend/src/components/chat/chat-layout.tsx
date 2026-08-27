@@ -10,7 +10,7 @@ import useWebSocket from "react-use-websocket";
 import { apiFetch, getWsUrl } from "@/lib/api";
 import { jwtDecode } from "jwt-decode";
 
-interface ChatLayoutProps {
+export interface ChatLayoutProps {
   defaultLayout?: number[];
   defaultCollapsed?: boolean;
   navCollapsedSize?: number;
@@ -21,7 +21,9 @@ type FriendRequest = {
   username: string;
 };
 
-export function ChatLayout({ }: ChatLayoutProps) {
+export function ChatLayout({ defaultLayout, defaultCollapsed, navCollapsedSize }: ChatLayoutProps = {}) {
+  // Suppress unused props warnings if needed
+  void defaultLayout; void defaultCollapsed; void navCollapsedSize;
   const [friendList, setFriendList] = useState<Friend[]>([]);
   const [selectedUser, setSelectedUser] = useState<Friend | null>(null);
   const [friendRequestList, setFriendRequestList] = useState<FriendRequest[]>([]);
@@ -47,7 +49,7 @@ export function ChatLayout({ }: ChatLayoutProps) {
   let currentUserId = 0;
   if (token) {
     try {
-      const decoded: any = jwtDecode(token);
+      const decoded = jwtDecode<{ user_id?: number; id?: number }>(token);
       currentUserId = decoded.user_id || decoded.id || 0;
     } catch (e) {
       console.error("Failed to decode token", e);
@@ -218,6 +220,7 @@ export function ChatLayout({ }: ChatLayoutProps) {
   useEffect(() => {
     handleGetFriendRequests();
     handleGetFriends();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -253,6 +256,7 @@ export function ChatLayout({ }: ChatLayoutProps) {
     if (selectedUser) {
       handleGetMessages(selectedUser.room_id, selectedUser.id);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedUser?.id]);
 
   const handleNewWsMessage = (roomId: number, msg: Message) => {

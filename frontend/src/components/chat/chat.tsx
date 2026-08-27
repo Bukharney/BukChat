@@ -17,13 +17,13 @@ interface ChatProps {
 export function Chat({ selectedUser, messages, onNewMessage }: ChatProps) {
   const [messagesState, setMessages] = useState<Message[]>([]);
   const [isPartnerTyping, setIsPartnerTyping] = useState(false);
-  const typingTimerRef = useRef<any>(null);
+  const typingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const token = localStorage.getItem("token");
   let currentUserId = 0;
   if (token) {
     try {
-      const decoded: any = jwtDecode(token);
+      const decoded = jwtDecode<{ user_id?: number; id?: number }>(token);
       currentUserId = decoded.user_id || decoded.id || 0;
     } catch (e) {
       console.error("Failed to decode token", e);

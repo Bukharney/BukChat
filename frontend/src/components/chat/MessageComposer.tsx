@@ -16,13 +16,13 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({ sendMessage, o
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const typingTimeoutRef = useRef<any>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const token = localStorage.getItem("token");
   let currentUserId = 0;
   if (token) {
     try {
-      const decoded: any = jwtDecode(token);
+      const decoded = jwtDecode<{ user_id?: number; id?: number }>(token);
       currentUserId = decoded.user_id || decoded.id || 0;
     } catch (e) {
       console.error("Failed to decode token", e);

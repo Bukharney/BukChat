@@ -43,8 +43,9 @@ export const FriendsModal: React.FC<FriendsModalProps> = ({
       await onAddFriend(newFriendUsername.trim());
       setStatusMessage({ text: `Friend request sent to ${newFriendUsername}!`, type: "success" });
       setNewFriendUsername("");
-    } catch (err: any) {
-      setStatusMessage({ text: err.message || "Failed to send request", type: "error" });
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : "Failed to send request";
+      setStatusMessage({ text: errorMsg, type: "error" });
     } finally {
       setIsSubmitting(false);
     }
