@@ -3,6 +3,7 @@ import { X, User, ShieldAlert, LogOut, KeyRound, Check, AlertCircle, Trash2 } fr
 import { useNavigate } from "react-router-dom";
 import { apiFetch } from "@/lib/api";
 import { getAvatarUrl } from "@/lib/avatar";
+import { ConfirmationModal } from "@/components/ui/ConfirmationModal";
 
 interface UserProfile {
   id: number;
@@ -312,50 +313,32 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose })
                 </button>
               </div>
 
-              {/* Sign Out Confirmation Modal */}
-              {showLogoutConfirm && (
-                <div className="p-4 bg-slate-100 border border-slate-200 rounded-2xl space-y-3 animate-in fade-in duration-150">
-                  <p className="text-xs font-semibold text-slate-800">Are you sure you want to sign out?</p>
-                  <div className="flex justify-end gap-2">
-                    <button
-                      onClick={() => setShowLogoutConfirm(false)}
-                      className="px-3.5 py-1.5 bg-white border border-slate-200 text-slate-700 text-xs font-medium rounded-xl hover:bg-slate-50 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleLogout}
-                      className="px-3.5 py-1.5 bg-slate-900 text-white text-xs font-semibold rounded-xl hover:bg-slate-800 transition-colors"
-                    >
-                      Yes, Sign Out
-                    </button>
-                  </div>
-                </div>
-              )}
+              {/* Sign Out Confirmation Overlay */}
+              <ConfirmationModal
+                isOpen={showLogoutConfirm}
+                onClose={() => setShowLogoutConfirm(false)}
+                onConfirm={handleLogout}
+                title="Sign Out of BukChat"
+                description="Are you sure you want to sign out? You will need to log back in to access your active chat sessions."
+                confirmText="Yes, Sign Out"
+                cancelText="Cancel"
+                variant="info"
+                icon={<LogOut className="w-6 h-6 text-slate-800" />}
+              />
 
-              {/* Delete Account Confirmation Modal */}
-              {showDeleteConfirm && (
-                <div className="p-4 bg-rose-100/60 border border-rose-300 rounded-2xl space-y-3 animate-in fade-in duration-150">
-                  <p className="text-xs font-bold text-rose-900">
-                    Warning: This action is permanent and cannot be undone!
-                  </p>
-                  <div className="flex justify-end gap-2">
-                    <button
-                      onClick={() => setShowDeleteConfirm(false)}
-                      className="px-3.5 py-1.5 bg-white border border-slate-200 text-slate-700 text-xs font-medium rounded-xl hover:bg-slate-50 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleDeleteAccount}
-                      disabled={isDeleting}
-                      className="px-3.5 py-1.5 bg-rose-600 text-white text-xs font-semibold rounded-xl hover:bg-rose-700 transition-colors"
-                    >
-                      {isDeleting ? "Deleting..." : "Permanently Delete"}
-                    </button>
-                  </div>
-                </div>
-              )}
+              {/* Delete Account Confirmation Overlay */}
+              <ConfirmationModal
+                isOpen={showDeleteConfirm}
+                onClose={() => setShowDeleteConfirm(false)}
+                onConfirm={handleDeleteAccount}
+                title="Delete Account"
+                description="Warning: This action is permanent and cannot be undone! Permanently erase your account, friendships, and message history."
+                confirmText="Permanently Delete"
+                cancelText="Cancel"
+                variant="danger"
+                isLoading={isDeleting}
+                icon={<Trash2 className="w-6 h-6 text-rose-600" />}
+              />
             </div>
           )}
         </div>
