@@ -1,14 +1,24 @@
 package ws
 
 import (
-	"fmt"
+	"context"
+	"log/slog"
 	"net/http"
 	"strconv"
+	"sync"
+	"time"
 
-	"github.com/bukharney/giga-chat/middlewares"
-	"github.com/bukharney/giga-chat/modules/entities"
+	"github.com/bukharney/bukchat/middlewares"
+	"github.com/bukharney/bukchat/modules/entities"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+)
+
+const (
+	writeWait      = 10 * time.Second
+	pongWait       = 60 * time.Second
+	pingPeriod     = (pongWait * 9) / 10
+	maxMessageSize = 512 * 1024
 )
 
 var upgrader = websocket.Upgrader{
@@ -21,12 +31,13 @@ var upgrader = websocket.Upgrader{
 
 // Client struct for websocket connection and message sending
 type Client struct {
-	Chat entities.ChatRepository
-	User *entities.UsersClaims
-	ID   string
-	Conn *websocket.Conn
-	send chan Message
-	hub  *Hub
+	Chat      entities.ChatRepository
+	User      *entities.UsersClaims
+	ID        string
+	Conn      *websocket.Conn
+	send      chan Message
+	hub       *Hub
+	closeOnce sync.Once
 }
 
 // NewClient creates a new client
@@ -48,11 +59,20 @@ func (c *Client) Read() {
 		c.Conn.Close()
 	}()
 
+	c.Conn.SetReadLimit(maxMessageSize)
+	_ = c.Conn.SetReadDeadline(time.Now().Add(pongWait))
+	c.Conn.SetPongHandler(func(string) error {
+		_ = c.Conn.SetReadDeadline(time.Now().Add(pongWait))
+		return nil
+	})
+
 	for {
 		var msg Message
 		err := c.Conn.ReadJSON(&msg)
 		if err != nil {
-			fmt.Println("WS Read Error: ", err)
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+				slog.Error("WS Read Unexpected Close Error", "error", err, "username", c.User.Username)
+			}
 			break
 		}
 		msg.Sender = c.User.Id
@@ -66,11 +86,16 @@ func (c *Client) Read() {
 			continue
 		}
 
-		c.Chat.SendMessage(&entities.ChatMessage{
+		ctx := context.Background()
+		err = c.Chat.SendMessage(ctx, &entities.ChatMessage{
 			RoomId:  RoomId,
 			Sender:  c.User.Id,
 			Message: msg.Content,
 		})
+		if err != nil {
+			slog.Error("Failed to persist WS message", "error", err, "roomId", RoomId)
+		}
+
 		c.hub.broadcast <- msg
 
 		c.hub.broadcast <- Message{
@@ -89,18 +114,40 @@ func (c *Client) Read() {
 
 // Client goroutine to write messages to client
 func (c *Client) Write() {
+	ticker := time.NewTicker(pingPeriod)
 	defer func() {
+		ticker.Stop()
 		c.Conn.Close()
 	}()
 
-	for message := range c.send {
-		_ = c.Conn.WriteJSON(message)
+	for {
+		select {
+		case message, ok := <-c.send:
+			_ = c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if !ok {
+				_ = c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
+				return
+			}
+
+			err := c.Conn.WriteJSON(message)
+			if err != nil {
+				slog.Error("WS Write JSON Error", "error", err, "username", c.User.Username)
+				return
+			}
+		case <-ticker.C:
+			_ = c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if err := c.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				return
+			}
+		}
 	}
 }
 
 // Client closing channel to unregister client
 func (c *Client) Close() {
-	close(c.send)
+	c.closeOnce.Do(func() {
+		close(c.send)
+	})
 }
 
 // Function to handle websocket connection and register client to hub and start goroutines
@@ -125,11 +172,11 @@ func ServeWS(c *gin.Context, hub *Hub, chatRepo entities.ChatRepository) {
 
 	ws, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
-		fmt.Println(err)
+		slog.Error("WebSocket Upgrade Error", "error", err)
 		return
 	}
 
-	fmt.Printf("%s connected to room %s\n", user.Username, roomId)
+	slog.Info("WebSocket connected", "username", user.Username, "roomId", roomId)
 
 	client := NewClient(roomId, ws, hub, user, chatRepo)
 

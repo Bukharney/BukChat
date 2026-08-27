@@ -1,4 +1,4 @@
-module github.com/bukharney/giga-chat
+module github.com/bukharney/bukchat
 
 go 1.21.6
 

@@ -1,13 +1,14 @@
 package usecases
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
 
-	"github.com/bukharney/giga-chat/modules/entities"
-	"github.com/bukharney/giga-chat/pkg/apperrors"
-	"github.com/bukharney/giga-chat/server/ws"
+	"github.com/bukharney/bukchat/modules/entities"
+	"github.com/bukharney/bukchat/pkg/apperrors"
+	"github.com/bukharney/bukchat/server/ws"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -21,7 +22,7 @@ func NewUsersUsecases(usersRepo entities.UsersRepository, chatRepo entities.Chat
 	return &UsersUsecases{UsersRepo: usersRepo, ChatRepo: chatRepo, Hub: hub}
 }
 
-func (a *UsersUsecases) Register(req *entities.UsersRegisterReq) (*entities.UsersRegisterRes, error) {
+func (a *UsersUsecases) Register(ctx context.Context, req *entities.UsersRegisterReq) (*entities.UsersRegisterRes, error) {
 	hashedPassword, err := hashPassword(req.Password)
 	if err != nil {
 		return nil, err
@@ -29,7 +30,7 @@ func (a *UsersUsecases) Register(req *entities.UsersRegisterReq) (*entities.User
 
 	req.Password = hashedPassword
 
-	user, err := a.UsersRepo.Register(req)
+	user, err := a.UsersRepo.Register(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -37,8 +38,8 @@ func (a *UsersUsecases) Register(req *entities.UsersRegisterReq) (*entities.User
 	return user, nil
 }
 
-func (a *UsersUsecases) ChangePassword(req *entities.UsersChangePasswordReq) (*entities.UsersChangedRes, error) {
-	user, err := a.UsersRepo.GetUserByUsername(req.Username)
+func (a *UsersUsecases) ChangePassword(ctx context.Context, req *entities.UsersChangePasswordReq) (*entities.UsersChangedRes, error) {
+	user, err := a.UsersRepo.GetUserByUsername(ctx, req.Username)
 	if err != nil {
 		return nil, apperrors.ErrUserNotFound
 	}
@@ -52,7 +53,7 @@ func (a *UsersUsecases) ChangePassword(req *entities.UsersChangePasswordReq) (*e
 		return nil, err
 	}
 
-	res, err := a.UsersRepo.ChangePassword(req)
+	res, err := a.UsersRepo.ChangePassword(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -69,8 +70,8 @@ func hashPassword(password string) (string, error) {
 	return string(hashedPassword), nil
 }
 
-func (a *UsersUsecases) GetUserByUsername(username string) (*entities.UsersPassport, error) {
-	user, err := a.UsersRepo.GetUserByUsername(username)
+func (a *UsersUsecases) GetUserByUsername(ctx context.Context, username string) (*entities.UsersPassport, error) {
+	user, err := a.UsersRepo.GetUserByUsername(ctx, username)
 	if err != nil {
 		return nil, err
 	}
@@ -78,8 +79,8 @@ func (a *UsersUsecases) GetUserByUsername(username string) (*entities.UsersPassp
 	return user, nil
 }
 
-func (a *UsersUsecases) GetUserDetails(user entities.UsersClaims) (*entities.UsersDataRes, error) {
-	res, err := a.UsersRepo.GetUserByUsername(user.Username)
+func (a *UsersUsecases) GetUserDetails(ctx context.Context, user entities.UsersClaims) (*entities.UsersDataRes, error) {
+	res, err := a.UsersRepo.GetUserByUsername(ctx, user.Username)
 	if err != nil {
 		return nil, err
 	}
@@ -91,12 +92,12 @@ func (a *UsersUsecases) GetUserDetails(user entities.UsersClaims) (*entities.Use
 	}, nil
 }
 
-func (a *UsersUsecases) DeleteAccount(user entities.UsersClaims) (*entities.UsersChangedRes, error) {
+func (a *UsersUsecases) DeleteAccount(ctx context.Context, user entities.UsersClaims) (*entities.UsersChangedRes, error) {
 	if user.Id == 0 {
 		return nil, apperrors.ErrUserNotFound
 	}
 
-	res, err := a.UsersRepo.DeleteAccount(user.Id)
+	res, err := a.UsersRepo.DeleteAccount(ctx, user.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -104,24 +105,24 @@ func (a *UsersUsecases) DeleteAccount(user entities.UsersClaims) (*entities.User
 	return res, nil
 }
 
-func (a *UsersUsecases) AddFriend(req *entities.FriendReq) (*entities.FriendRes, error) {
-	friendId, err := a.GetUserByUsername(req.FriendUsername)
+func (a *UsersUsecases) AddFriend(ctx context.Context, req *entities.FriendReq) (*entities.FriendRes, error) {
+	friendId, err := a.GetUserByUsername(ctx, req.FriendUsername)
 	if err != nil {
 		return nil, err
 	}
 
 	req.FriendId = friendId.Id
-	status, err := a.UsersRepo.GetFriendReq(req.UserId, friendId.Id)
+	status, err := a.UsersRepo.GetFriendReq(ctx, req.UserId, friendId.Id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			req.Status = 0
-			res, err := a.UsersRepo.AddFriend(req)
+			res, err := a.UsersRepo.AddFriend(ctx, req)
 			if err != nil {
 				return nil, err
 			}
 			if a.Hub != nil {
 				a.Hub.SendToUser(friendId.Id, "friend_request", map[string]interface{}{
-					"from_user_id": req.UserId,
+					"from_user_id":  req.UserId,
 					"from_username": req.FriendUsername,
 				})
 			}
@@ -135,19 +136,19 @@ func (a *UsersUsecases) AddFriend(req *entities.FriendReq) (*entities.FriendRes,
 	} else if status.Status == 1 && status.UserId == req.UserId && status.FriendId == friendId.Id {
 		return nil, apperrors.ErrFriendAlreadyAdded
 	} else if status.Status == 0 && status.UserId == friendId.Id && status.FriendId == req.UserId {
-		id, err := a.ChatRepo.CreateChatRoom(&entities.ChatRoom{
+		id, err := a.ChatRepo.CreateChatRoom(ctx, &entities.ChatRoom{
 			Name: friendId.Username,
 		})
 		if err != nil {
 			return nil, err
 		}
 
-		res, err := a.UsersRepo.AcceptFriendReq(status.UserId, status.FriendId, id)
+		res, err := a.UsersRepo.AcceptFriendReq(ctx, status.UserId, status.FriendId, id)
 		if err != nil {
 			return nil, err
 		}
 
-		err = a.ChatRepo.JoinChatRoom(&entities.JoinChatRoomReq{
+		err = a.ChatRepo.JoinChatRoom(ctx, &entities.JoinChatRoomReq{
 			UserId: friendId.Id,
 			RoomId: id,
 		})
@@ -155,7 +156,7 @@ func (a *UsersUsecases) AddFriend(req *entities.FriendReq) (*entities.FriendRes,
 			return nil, err
 		}
 
-		err = a.ChatRepo.JoinChatRoom(&entities.JoinChatRoomReq{
+		err = a.ChatRepo.JoinChatRoom(ctx, &entities.JoinChatRoomReq{
 			UserId: req.UserId,
 			RoomId: id,
 		})
@@ -176,12 +177,12 @@ func (a *UsersUsecases) AddFriend(req *entities.FriendReq) (*entities.FriendRes,
 	}
 }
 
-func (a *UsersUsecases) RejectFriend(userId int, FriendUsername string) (*entities.UsersChangedRes, error) {
-	friend, err := a.GetUserByUsername(FriendUsername)
+func (a *UsersUsecases) RejectFriend(ctx context.Context, userId int, FriendUsername string) (*entities.UsersChangedRes, error) {
+	friend, err := a.GetUserByUsername(ctx, FriendUsername)
 	if err != nil {
 		return nil, err
 	}
-	res, err := a.UsersRepo.RejectFriend(userId, friend.Id)
+	res, err := a.UsersRepo.RejectFriend(ctx, userId, friend.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -193,8 +194,8 @@ func (a *UsersUsecases) RejectFriend(userId int, FriendUsername string) (*entiti
 	return res, nil
 }
 
-func (a *UsersUsecases) GetFriendsReq(userId int) ([]entities.FriendInfoRes, error) {
-	res, err := a.UsersRepo.GetFriendsReq(userId)
+func (a *UsersUsecases) GetFriendsReq(ctx context.Context, userId int) ([]entities.FriendInfoRes, error) {
+	res, err := a.UsersRepo.GetFriendsReq(ctx, userId)
 	if err != nil {
 		return nil, err
 	}
@@ -202,8 +203,8 @@ func (a *UsersUsecases) GetFriendsReq(userId int) ([]entities.FriendInfoRes, err
 	return res, nil
 }
 
-func (a *UsersUsecases) GetFriends(userId int) ([]entities.FriendInfoRes, error) {
-	res, err := a.UsersRepo.GetFriends(userId)
+func (a *UsersUsecases) GetFriends(ctx context.Context, userId int) ([]entities.FriendInfoRes, error) {
+	res, err := a.UsersRepo.GetFriends(ctx, userId)
 	if err != nil {
 		return nil, err
 	}

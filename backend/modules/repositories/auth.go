@@ -1,11 +1,12 @@
 package repositories
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"time"
 
-	"github.com/bukharney/giga-chat/modules/entities"
+	"github.com/bukharney/bukchat/modules/entities"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
@@ -19,7 +20,7 @@ func NewAuthRepo(db *sqlx.DB) entities.AuthRepository {
 	return &AuthRepo{Db: db}
 }
 
-func (a *AuthRepo) SignUsersAccessToken(req *entities.UsersPassport) (string, error) {
+func (a *AuthRepo) SignUsersAccessToken(ctx context.Context, req *entities.UsersPassport) (string, error) {
 	claims := &entities.UsersClaims{
 		Id:       req.Id,
 		Username: req.Username,

@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"github.com/bukharney/giga-chat/pkg/apperrors"
+	"github.com/bukharney/bukchat/pkg/apperrors"
 	"github.com/gin-gonic/gin"
 )
 

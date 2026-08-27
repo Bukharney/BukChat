@@ -1,31 +1,33 @@
 package entities
 
 import (
+	"context"
+
 	"github.com/golang-jwt/jwt/v4"
 )
 
 type UsersUsecase interface {
-	Register(req *UsersRegisterReq) (*UsersRegisterRes, error)
-	ChangePassword(req *UsersChangePasswordReq) (*UsersChangedRes, error)
-	GetUserDetails(user UsersClaims) (*UsersDataRes, error)
-	DeleteAccount(user UsersClaims) (*UsersChangedRes, error)
-	AddFriend(req *FriendReq) (*FriendRes, error)
-	GetFriendsReq(userId int) ([]FriendInfoRes, error)
-	GetFriends(userId int) ([]FriendInfoRes, error)
-	RejectFriend(userId int, FriendUsername string) (*UsersChangedRes, error)
+	Register(ctx context.Context, req *UsersRegisterReq) (*UsersRegisterRes, error)
+	ChangePassword(ctx context.Context, req *UsersChangePasswordReq) (*UsersChangedRes, error)
+	GetUserDetails(ctx context.Context, user UsersClaims) (*UsersDataRes, error)
+	DeleteAccount(ctx context.Context, user UsersClaims) (*UsersChangedRes, error)
+	AddFriend(ctx context.Context, req *FriendReq) (*FriendRes, error)
+	GetFriendsReq(ctx context.Context, userId int) ([]FriendInfoRes, error)
+	GetFriends(ctx context.Context, userId int) ([]FriendInfoRes, error)
+	RejectFriend(ctx context.Context, userId int, FriendUsername string) (*UsersChangedRes, error)
 }
 
 type UsersRepository interface {
-	Register(req *UsersRegisterReq) (*UsersRegisterRes, error)
-	GetUserByUsername(username string) (*UsersPassport, error)
-	ChangePassword(req *UsersChangePasswordReq) (*UsersChangedRes, error)
-	DeleteAccount(user_id int) (*UsersChangedRes, error)
-	AddFriend(req *FriendReq) (*FriendRes, error)
-	GetFriendsReq(user_id int) ([]FriendInfoRes, error)
-	GetFriendReq(user_id int, friend_id int) (*FriendRes, error)
-	GetFriends(user_id int) ([]FriendInfoRes, error)
-	AcceptFriendReq(user_id int, friend_id int, room_id int) (*FriendRes, error)
-	RejectFriend(user_id int, friend_id int) (*UsersChangedRes, error)
+	Register(ctx context.Context, req *UsersRegisterReq) (*UsersRegisterRes, error)
+	GetUserByUsername(ctx context.Context, username string) (*UsersPassport, error)
+	ChangePassword(ctx context.Context, req *UsersChangePasswordReq) (*UsersChangedRes, error)
+	DeleteAccount(ctx context.Context, user_id int) (*UsersChangedRes, error)
+	AddFriend(ctx context.Context, req *FriendReq) (*FriendRes, error)
+	GetFriendsReq(ctx context.Context, user_id int) ([]FriendInfoRes, error)
+	GetFriendReq(ctx context.Context, user_id int, friend_id int) (*FriendRes, error)
+	GetFriends(ctx context.Context, user_id int) ([]FriendInfoRes, error)
+	AcceptFriendReq(ctx context.Context, user_id int, friend_id int, room_id int) (*FriendRes, error)
+	RejectFriend(ctx context.Context, user_id int, friend_id int) (*UsersChangedRes, error)
 }
 
 type UsersCredentials struct {

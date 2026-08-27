@@ -3,10 +3,10 @@ package server
 import (
 	"net/http"
 
-	_controller "github.com/bukharney/giga-chat/modules/controllers"
-	_repo "github.com/bukharney/giga-chat/modules/repositories"
-	_usecase "github.com/bukharney/giga-chat/modules/usecases"
-	"github.com/bukharney/giga-chat/server/ws"
+	_controller "github.com/bukharney/bukchat/modules/controllers"
+	_repo "github.com/bukharney/bukchat/modules/repositories"
+	_usecase "github.com/bukharney/bukchat/modules/usecases"
+	"github.com/bukharney/bukchat/server/ws"
 
 	"github.com/gin-gonic/gin"
 )

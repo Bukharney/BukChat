@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/bukharney/giga-chat/configs"
+	"github.com/bukharney/bukchat/configs"
 )
 
 func ConnectionUrlBuilder(s string, cfg *configs.Configs) (string, error) {

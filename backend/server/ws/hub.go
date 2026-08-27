@@ -1,6 +1,8 @@
 package ws
 
 import (
+	"context"
+	"log/slog"
 	"sync"
 	"time"
 )
@@ -11,6 +13,7 @@ type Hub struct {
 	unregister  chan *Client
 	register    chan *Client
 	broadcast   chan Message
+	pubSub      PubSubAdapter
 	mu          sync.RWMutex
 }
 
@@ -24,17 +27,24 @@ type Message struct {
 	Payload   interface{} `json:"payload,omitempty"`
 }
 
-func NewHub() *Hub {
+func NewHub(pubSub ...PubSubAdapter) *Hub {
+	var ps PubSubAdapter = NewInMemoryPubSub()
+	if len(pubSub) > 0 && pubSub[0] != nil {
+		ps = pubSub[0]
+	}
+
 	return &Hub{
 		clients:     make(map[string]map[*Client]bool),
 		userClients: make(map[int]map[*Client]bool),
 		unregister:  make(chan *Client),
 		register:    make(chan *Client),
 		broadcast:   make(chan Message),
+		pubSub:      ps,
 	}
 }
 
 func (h *Hub) Run() {
+	slog.Info("WebSocket Hub event loop started")
 	for {
 		select {
 		case client := <-h.register:
@@ -77,6 +87,8 @@ func (h *Hub) RegisterNewClient(client *Client) {
 	}
 	h.mu.Unlock()
 
+	slog.Info("WebSocket client registered", "username", client.User.Username, "roomId", client.ID)
+
 	h.HandleMessage(Message{
 		Type:      "system",
 		Sender:    0,
@@ -100,24 +112,27 @@ func (h *Hub) RegisterNewClient(client *Client) {
 
 func (h *Hub) RemoveClient(client *Client) {
 	h.mu.Lock()
-
 	if _, ok := h.clients[client.ID]; ok {
 		delete(h.clients[client.ID], client)
+		if len(h.clients[client.ID]) == 0 {
+			delete(h.clients, client.ID)
+		}
 	}
 
 	var isLastConn bool
 	if client.User != nil && client.User.Id != 0 {
-		if _, ok := h.userClients[client.User.Id]; ok {
-			delete(h.userClients[client.User.Id], client)
-			if len(h.userClients[client.User.Id]) == 0 {
+		if userConns, ok := h.userClients[client.User.Id]; ok {
+			delete(userConns, client)
+			if len(userConns) == 0 {
 				delete(h.userClients, client.User.Id)
 				isLastConn = true
 			}
 		}
 	}
-
 	h.mu.Unlock()
-	close(client.send)
+
+	client.Close()
+	slog.Info("WebSocket client unregistered", "username", client.User.Username, "roomId", client.ID)
 
 	if isLastConn && client.User != nil {
 		h.HandleMessage(Message{
@@ -134,23 +149,36 @@ func (h *Hub) RemoveClient(client *Client) {
 
 func (h *Hub) HandleMessage(message Message) {
 	h.mu.RLock()
-	defer h.mu.RUnlock()
+	clients, ok := h.clients[message.ID]
+	if !ok {
+		h.mu.RUnlock()
+		return
+	}
 
-	clients := h.clients[message.ID]
+	var stale []*Client
 	for client := range clients {
 		select {
 		case client.send <- message:
 		default:
-			close(client.send)
-			delete(h.clients[message.ID], client)
+			stale = append(stale, client)
 		}
+	}
+	h.mu.RUnlock()
+
+	// Safely clean up stale clients under a write lock
+	if len(stale) > 0 {
+		h.mu.Lock()
+		for _, client := range stale {
+			if _, exists := h.clients[message.ID][client]; exists {
+				close(client.send)
+				delete(h.clients[message.ID], client)
+			}
+		}
+		h.mu.Unlock()
 	}
 }
 
 func (h *Hub) SendToUser(userID int, eventType string, payload interface{}) {
-	h.mu.RLock()
-	defer h.mu.RUnlock()
-
 	msg := Message{
 		Type:      eventType,
 		Sender:    0,
@@ -158,17 +186,35 @@ func (h *Hub) SendToUser(userID int, eventType string, payload interface{}) {
 		Payload:   payload,
 	}
 
+	h.mu.RLock()
 	clients, ok := h.userClients[userID]
 	if !ok {
+		h.mu.RUnlock()
 		return
 	}
 
+	var stale []*Client
 	for client := range clients {
 		select {
 		case client.send <- msg:
 		default:
-			close(client.send)
-			delete(h.userClients[userID], client)
+			stale = append(stale, client)
 		}
 	}
+	h.mu.RUnlock()
+
+	if len(stale) > 0 {
+		h.mu.Lock()
+		for _, client := range stale {
+			if userConns, exists := h.userClients[userID]; exists {
+				close(client.send)
+				delete(userConns, client)
+			}
+		}
+		h.mu.Unlock()
+	}
+}
+
+func (h *Hub) Publish(ctx context.Context, channel string, msg Message) error {
+	return h.pubSub.Publish(ctx, channel, msg)
 }

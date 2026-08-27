@@ -1,17 +1,19 @@
 package entities
 
+import "context"
+
 type ChatRepository interface {
-	CreateChatRoom(req *ChatRoom) (int, error)
-	GetChatRoom(userId int, roomId int) error
-	JoinChatRoom(req *JoinChatRoomReq) error
-	SendMessage(req *ChatMessage) error
-	GetChatMessages(roomId int) ([]ChatMessage, error)
+	CreateChatRoom(ctx context.Context, req *ChatRoom) (int, error)
+	GetChatRoom(ctx context.Context, userId int, roomId int) error
+	JoinChatRoom(ctx context.Context, req *JoinChatRoomReq) error
+	SendMessage(ctx context.Context, req *ChatMessage) error
+	GetChatMessages(ctx context.Context, roomId int) ([]ChatMessage, error)
 }
 
 type ChatUsecase interface {
-	CreateChatRoom(req *ChatRoom) error
-	GetChatMessages(roomId int) ([]ChatMessage, error)
-	GetChatRoom(userId int, roomId int) error
+	CreateChatRoom(ctx context.Context, req *ChatRoom) error
+	GetChatMessages(ctx context.Context, roomId int) ([]ChatMessage, error)
+	GetChatRoom(ctx context.Context, userId int, roomId int) error
 }
 
 type ChatRoom struct {

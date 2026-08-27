@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/bukharney/giga-chat/pkg/apperrors"
+	"github.com/bukharney/bukchat/pkg/apperrors"
 )
 
 func TestMapErrorToStatus(t *testing.T) {

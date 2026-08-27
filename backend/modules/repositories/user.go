@@ -1,13 +1,14 @@
 package repositories
 
 import (
+	"context"
 	"database/sql"
 	"errors"
 	"fmt"
 	"strings"
 
-	"github.com/bukharney/giga-chat/modules/entities"
-	"github.com/bukharney/giga-chat/pkg/apperrors"
+	"github.com/bukharney/bukchat/modules/entities"
+	"github.com/bukharney/bukchat/pkg/apperrors"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 )
@@ -20,7 +21,7 @@ func NewUsersRepo(db *sqlx.DB) entities.UsersRepository {
 	return &UserRepo{Db: db}
 }
 
-func (r *UserRepo) Register(req *entities.UsersRegisterReq) (*entities.UsersRegisterRes, error) {
+func (r *UserRepo) Register(ctx context.Context, req *entities.UsersRegisterReq) (*entities.UsersRegisterRes, error) {
 	query := `
 	INSERT INTO "users"(
 		"username",
@@ -32,7 +33,7 @@ func (r *UserRepo) Register(req *entities.UsersRegisterReq) (*entities.UsersRegi
 	`
 	user := new(entities.UsersRegisterRes)
 
-	rows, err := r.Db.Queryx(query, req.Username, req.Email, req.Password)
+	rows, err := r.Db.QueryxContext(ctx, query, req.Username, req.Email, req.Password)
 	if err != nil {
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) {
@@ -61,7 +62,7 @@ func (r *UserRepo) Register(req *entities.UsersRegisterReq) (*entities.UsersRegi
 	return user, nil
 }
 
-func (r *UserRepo) ChangePassword(req *entities.UsersChangePasswordReq) (*entities.UsersChangedRes, error) {
+func (r *UserRepo) ChangePassword(ctx context.Context, req *entities.UsersChangePasswordReq) (*entities.UsersChangedRes, error) {
 	query := `
 	UPDATE "users"
 	SET "password" = $1
@@ -70,7 +71,7 @@ func (r *UserRepo) ChangePassword(req *entities.UsersChangePasswordReq) (*entiti
 
 	res := new(entities.UsersChangedRes)
 
-	rows, err := r.Db.Queryx(query, req.NewPassword, req.Id)
+	rows, err := r.Db.QueryxContext(ctx, query, req.NewPassword, req.Id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, apperrors.ErrUserNotFound
@@ -88,7 +89,7 @@ func (r *UserRepo) ChangePassword(req *entities.UsersChangePasswordReq) (*entiti
 	return res, nil
 }
 
-func (r *UserRepo) GetUserByUsername(username string) (*entities.UsersPassport, error) {
+func (r *UserRepo) GetUserByUsername(ctx context.Context, username string) (*entities.UsersPassport, error) {
 	query := `
 	SELECT
 	"id",
@@ -99,7 +100,7 @@ func (r *UserRepo) GetUserByUsername(username string) (*entities.UsersPassport, 
 	WHERE "username" = $1;
 	`
 	res := new(entities.UsersPassport)
-	if err := r.Db.Get(res, query, username); err != nil {
+	if err := r.Db.GetContext(ctx, res, query, username); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, apperrors.ErrUserNotFound
 		}
@@ -108,7 +109,7 @@ func (r *UserRepo) GetUserByUsername(username string) (*entities.UsersPassport, 
 	return res, nil
 }
 
-func (r *UserRepo) DeleteAccount(user_id int) (*entities.UsersChangedRes, error) {
+func (r *UserRepo) DeleteAccount(ctx context.Context, user_id int) (*entities.UsersChangedRes, error) {
 	query := `
 	DELETE FROM "users"
 	WHERE "id" = $1;
@@ -116,7 +117,7 @@ func (r *UserRepo) DeleteAccount(user_id int) (*entities.UsersChangedRes, error)
 
 	user := new(entities.UsersChangedRes)
 
-	rows, err := r.Db.Queryx(query, user_id)
+	rows, err := r.Db.QueryxContext(ctx, query, user_id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to delete user: %w", err)
 	}
@@ -126,7 +127,7 @@ func (r *UserRepo) DeleteAccount(user_id int) (*entities.UsersChangedRes, error)
 	return user, nil
 }
 
-func (r *UserRepo) AddFriend(req *entities.FriendReq) (*entities.FriendRes, error) {
+func (r *UserRepo) AddFriend(ctx context.Context, req *entities.FriendReq) (*entities.FriendRes, error) {
 	query := `
 	INSERT INTO "friends"(
 	"from_user_id",
@@ -140,7 +141,7 @@ func (r *UserRepo) AddFriend(req *entities.FriendReq) (*entities.FriendRes, erro
 
 	user := new(entities.FriendRes)
 
-	rows, err := r.Db.Queryx(query, req.UserId, req.FriendId, nil, req.Status)
+	rows, err := r.Db.QueryxContext(ctx, query, req.UserId, req.FriendId, nil, req.Status)
 	if err != nil {
 		return nil, fmt.Errorf("failed to add friend: %w", err)
 	}
@@ -149,7 +150,7 @@ func (r *UserRepo) AddFriend(req *entities.FriendReq) (*entities.FriendRes, erro
 	return user, nil
 }
 
-func (r *UserRepo) AcceptFriendReq(user_id int, friend_id int, room_id int) (*entities.FriendRes, error) {
+func (r *UserRepo) AcceptFriendReq(ctx context.Context, user_id int, friend_id int, room_id int) (*entities.FriendRes, error) {
 	query := `
 	UPDATE "friends"
 	SET "status" = 1, "room_id" = $3
@@ -159,7 +160,7 @@ func (r *UserRepo) AcceptFriendReq(user_id int, friend_id int, room_id int) (*en
 
 	user := new(entities.FriendRes)
 
-	rows, err := r.Db.Queryx(query, friend_id, user_id, room_id)
+	rows, err := r.Db.QueryxContext(ctx, query, friend_id, user_id, room_id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to accept friend request: %w", err)
 	}
@@ -168,7 +169,7 @@ func (r *UserRepo) AcceptFriendReq(user_id int, friend_id int, room_id int) (*en
 	return user, nil
 }
 
-func (r *UserRepo) RejectFriend(user_id int, friend_id int) (*entities.UsersChangedRes, error) {
+func (r *UserRepo) RejectFriend(ctx context.Context, user_id int, friend_id int) (*entities.UsersChangedRes, error) {
 	query := `
 	DELETE FROM "friends"
 	WHERE "to_user_id" = $1 AND "from_user_id" = $2 OR "to_user_id" = $2 AND "from_user_id" = $1;
@@ -176,7 +177,7 @@ func (r *UserRepo) RejectFriend(user_id int, friend_id int) (*entities.UsersChan
 
 	user := new(entities.UsersChangedRes)
 
-	rows, err := r.Db.Queryx(query, user_id, friend_id)
+	rows, err := r.Db.QueryxContext(ctx, query, user_id, friend_id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to reject friend request: %w", err)
 	}
@@ -186,7 +187,7 @@ func (r *UserRepo) RejectFriend(user_id int, friend_id int) (*entities.UsersChan
 	return user, nil
 }
 
-func (r *UserRepo) GetFriendsReq(user_id int) ([]entities.FriendInfoRes, error) {
+func (r *UserRepo) GetFriendsReq(ctx context.Context, user_id int) ([]entities.FriendInfoRes, error) {
 	query := `
 	SELECT
 	"users"."id",
@@ -199,7 +200,7 @@ func (r *UserRepo) GetFriendsReq(user_id int) ([]entities.FriendInfoRes, error) 
 
 	var friends []entities.FriendInfoRes
 
-	err := r.Db.Select(&friends, query, user_id)
+	err := r.Db.SelectContext(ctx, &friends, query, user_id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return []entities.FriendInfoRes{}, nil
@@ -210,7 +211,7 @@ func (r *UserRepo) GetFriendsReq(user_id int) ([]entities.FriendInfoRes, error) 
 	return friends, nil
 }
 
-func (r *UserRepo) GetFriendReq(user_id int, friend_id int) (*entities.FriendRes, error) {
+func (r *UserRepo) GetFriendReq(ctx context.Context, user_id int, friend_id int) (*entities.FriendRes, error) {
 	query := `
 	SELECT 
 	"from_user_id", 
@@ -223,7 +224,7 @@ func (r *UserRepo) GetFriendReq(user_id int, friend_id int) (*entities.FriendRes
 
 	var friend = new(entities.FriendRes)
 
-	err := r.Db.Get(friend, query, user_id, friend_id)
+	err := r.Db.GetContext(ctx, friend, query, user_id, friend_id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, sql.ErrNoRows
@@ -234,7 +235,7 @@ func (r *UserRepo) GetFriendReq(user_id int, friend_id int) (*entities.FriendRes
 	return friend, nil
 }
 
-func (r *UserRepo) GetFriends(user_id int) ([]entities.FriendInfoRes, error) {
+func (r *UserRepo) GetFriends(ctx context.Context, user_id int) ([]entities.FriendInfoRes, error) {
 	query := `
 	SELECT
 	"users"."id",
@@ -249,7 +250,7 @@ func (r *UserRepo) GetFriends(user_id int) ([]entities.FriendInfoRes, error) {
 
 	var friends []entities.FriendInfoRes
 
-	err := r.Db.Select(&friends, query, user_id)
+	err := r.Db.SelectContext(ctx, &friends, query, user_id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, apperrors.ErrNotFound

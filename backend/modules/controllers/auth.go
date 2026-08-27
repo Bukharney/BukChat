@@ -3,11 +3,11 @@ package controllers
 import (
 	"net/http"
 
-	"github.com/bukharney/giga-chat/configs"
-	"github.com/bukharney/giga-chat/middlewares"
-	"github.com/bukharney/giga-chat/modules/entities"
-	"github.com/bukharney/giga-chat/pkg/apperrors"
-	"github.com/bukharney/giga-chat/utils"
+	"github.com/bukharney/bukchat/configs"
+	"github.com/bukharney/bukchat/middlewares"
+	"github.com/bukharney/bukchat/modules/entities"
+	"github.com/bukharney/bukchat/pkg/apperrors"
+	"github.com/bukharney/bukchat/utils"
 	"github.com/gin-gonic/gin"
 )
 
@@ -35,7 +35,7 @@ func (a *AuthController) Login(c *gin.Context) {
 		return
 	}
 
-	res, err := a.AuthUsecase.Login(a.Cfg, req)
+	res, err := a.AuthUsecase.Login(c.Request.Context(), a.Cfg, req)
 	if err != nil {
 		utils.RespondWithError(c, err)
 		return

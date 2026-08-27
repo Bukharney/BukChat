@@ -4,11 +4,11 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/bukharney/giga-chat/configs"
-	"github.com/bukharney/giga-chat/middlewares"
-	"github.com/bukharney/giga-chat/modules/entities"
-	"github.com/bukharney/giga-chat/pkg/apperrors"
-	"github.com/bukharney/giga-chat/utils"
+	"github.com/bukharney/bukchat/configs"
+	"github.com/bukharney/bukchat/middlewares"
+	"github.com/bukharney/bukchat/modules/entities"
+	"github.com/bukharney/bukchat/pkg/apperrors"
+	"github.com/bukharney/bukchat/utils"
 	"github.com/gin-gonic/gin"
 )
 
@@ -38,7 +38,7 @@ func (c *ChatController) CreateChatRoom(ctx *gin.Context) {
 		return
 	}
 
-	err = c.ChatUsecase.CreateChatRoom(&req)
+	err = c.ChatUsecase.CreateChatRoom(ctx.Request.Context(), &req)
 	if err != nil {
 		utils.RespondWithError(ctx, err)
 		return
@@ -60,13 +60,14 @@ func (c *ChatController) GetChatMessages(ctx *gin.Context) {
 		return
 	}
 
-	err = c.ChatUsecase.GetChatRoom(user.Id, rid)
+	reqCtx := ctx.Request.Context()
+	err = c.ChatUsecase.GetChatRoom(reqCtx, user.Id, rid)
 	if err != nil {
 		utils.RespondWithError(ctx, err)
 		return
 	}
 
-	messages, err := c.ChatUsecase.GetChatMessages(rid)
+	messages, err := c.ChatUsecase.GetChatMessages(reqCtx, rid)
 	if err != nil {
 		utils.RespondWithError(ctx, err)
 		return

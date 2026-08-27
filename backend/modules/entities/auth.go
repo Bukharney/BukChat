@@ -1,11 +1,15 @@
 package entities
 
-import "github.com/bukharney/giga-chat/configs"
+import (
+	"context"
+
+	"github.com/bukharney/bukchat/configs"
+)
 
 type AuthRepository interface {
-	SignUsersAccessToken(req *UsersPassport) (string, error)
+	SignUsersAccessToken(ctx context.Context, req *UsersPassport) (string, error)
 }
 
 type AuthUsecase interface {
-	Login(cfg *configs.Configs, req *UsersCredentials) (*UsersLoginRes, error)
+	Login(ctx context.Context, cfg *configs.Configs, req *UsersCredentials) (*UsersLoginRes, error)
 }

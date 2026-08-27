@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/bukharney/giga-chat/configs"
-	"github.com/bukharney/giga-chat/utils"
+	"github.com/bukharney/bukchat/configs"
+	"github.com/bukharney/bukchat/utils"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 )

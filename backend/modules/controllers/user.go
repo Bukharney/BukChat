@@ -1,14 +1,14 @@
 package controllers
 
 import (
-	"log"
+	"log/slog"
 	"net/http"
 
-	"github.com/bukharney/giga-chat/configs"
-	"github.com/bukharney/giga-chat/middlewares"
-	"github.com/bukharney/giga-chat/modules/entities"
-	"github.com/bukharney/giga-chat/pkg/apperrors"
-	"github.com/bukharney/giga-chat/utils"
+	"github.com/bukharney/bukchat/configs"
+	"github.com/bukharney/bukchat/middlewares"
+	"github.com/bukharney/bukchat/modules/entities"
+	"github.com/bukharney/bukchat/pkg/apperrors"
+	"github.com/bukharney/bukchat/utils"
 	"github.com/gin-gonic/gin"
 )
 
@@ -47,15 +47,16 @@ func (u *UsersController) Register(c *gin.Context) {
 		Password: req.Password,
 	}
 
-	res, err := u.UsersUsecase.Register(req)
+	ctx := c.Request.Context()
+	res, err := u.UsersUsecase.Register(ctx, req)
 	if err != nil {
 		utils.RespondWithError(c, err)
 		return
 	}
 
-	token, err := u.AuthUsecase.Login(u.Cfg, user)
+	token, err := u.AuthUsecase.Login(ctx, u.Cfg, user)
 	if err != nil {
-		log.Println("login after register failed:", err)
+		slog.Error("Login after register failed", "error", err)
 		utils.RespondWithError(c, err)
 		return
 	}
@@ -81,7 +82,7 @@ func (u *UsersController) ChangePassword(c *gin.Context) {
 	req.Username = claims.Username
 	req.Id = claims.Id
 
-	res, err := u.UsersUsecase.ChangePassword(req)
+	res, err := u.UsersUsecase.ChangePassword(c.Request.Context(), req)
 	if err != nil {
 		utils.RespondWithError(c, err)
 		return
@@ -97,7 +98,7 @@ func (u *UsersController) GetUserDetails(c *gin.Context) {
 		return
 	}
 
-	res, err := u.UsersUsecase.GetUserDetails(*user)
+	res, err := u.UsersUsecase.GetUserDetails(c.Request.Context(), *user)
 	if err != nil {
 		utils.RespondWithError(c, err)
 		return
@@ -113,7 +114,7 @@ func (u *UsersController) DeleteAccount(c *gin.Context) {
 		return
 	}
 
-	res, err := u.UsersUsecase.DeleteAccount(*user)
+	res, err := u.UsersUsecase.DeleteAccount(c.Request.Context(), *user)
 	if err != nil {
 		utils.RespondWithError(c, err)
 		return
@@ -138,7 +139,7 @@ func (u *UsersController) AddFriend(c *gin.Context) {
 
 	req.UserId = user.Id
 
-	res, err := u.UsersUsecase.AddFriend(req)
+	res, err := u.UsersUsecase.AddFriend(c.Request.Context(), req)
 	if err != nil {
 		utils.RespondWithError(c, err)
 		return
@@ -163,7 +164,7 @@ func (u *UsersController) RejectFriend(c *gin.Context) {
 
 	req.UserId = user.Id
 
-	res, err := u.UsersUsecase.RejectFriend(req.UserId, req.FriendUsername)
+	res, err := u.UsersUsecase.RejectFriend(c.Request.Context(), req.UserId, req.FriendUsername)
 	if err != nil {
 		utils.RespondWithError(c, err)
 		return
@@ -179,7 +180,7 @@ func (u *UsersController) GetFriendsReq(c *gin.Context) {
 		return
 	}
 
-	res, err := u.UsersUsecase.GetFriendsReq(user.Id)
+	res, err := u.UsersUsecase.GetFriendsReq(c.Request.Context(), user.Id)
 	if err != nil {
 		utils.RespondWithError(c, err)
 		return
@@ -195,7 +196,7 @@ func (u *UsersController) GetFriends(c *gin.Context) {
 		return
 	}
 
-	res, err := u.UsersUsecase.GetFriends(user.Id)
+	res, err := u.UsersUsecase.GetFriends(c.Request.Context(), user.Id)
 	if err != nil {
 		utils.RespondWithError(c, err)
 		return
